@@ -231,3 +231,21 @@ def test_trend_found_in_noisy_seasonal_series_across_seeds(tmp_path):
     for seed in range(8):
         r = profile(tmp_path, synthetic.trend_seasonality(seed=seed))
         assert r.trend.direction == "positive", seed
+
+
+def test_noisy_trend_with_small_per_step_growth_is_still_found(tmp_path):
+    # growth of 730 over the span but noise 30 per step: differencing alone cannot see it
+    for seed in range(5):
+        r = profile(tmp_path, synthetic.linear_trend(n=730, slope=1.0, noise=30.0, seed=seed))
+        assert r.trend.direction == "positive", seed
+        assert (
+            r.trend.drift_p_value > 0.01 and r.trend.adf_p_value < 0.01
+        )  # found via the ADF guard
+
+
+def test_noisy_seasonal_trend_found_in_the_retail_example():
+    from pathlib import Path
+
+    path = Path(__file__).resolve().parent.parent / "examples" / "retail_sales.csv"
+    r = profile_series(load_series(path))
+    assert r.trend.direction == "positive" and r.seasonality.season_length == 7

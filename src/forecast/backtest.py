@@ -192,6 +192,7 @@ def run_backtest(
     plan: BacktestPlan,
     run: list[tuple[ModelSpec, Eligibility]],
     skipped: list[tuple[ModelSpec, Eligibility]] = (),
+    build=None,
 ) -> BacktestResult:
     """Cross-validate every model in ``run`` over the planned windows.
 
@@ -209,7 +210,7 @@ def run_backtest(
     for spec, verdict in run:
         started = time.perf_counter()
         try:
-            raw = _cross_validate(sf_input, freq, spec, verdict.season_length, plan)
+            raw = _cross_validate(sf_input, freq, spec, verdict.season_length, plan, build)
         except Exception as exc:  # noqa: BLE001 - any model failure must be isolated
             records.append(ModelBacktest(
                 name=spec.name, kind=spec.kind, status="failed", season_length=verdict.season_length,
@@ -243,11 +244,18 @@ def run_backtest(
 
 
 def _cross_validate(
-    sf_input: pd.DataFrame, freq: str, spec: ModelSpec, season_length: int, plan: BacktestPlan
+    sf_input: pd.DataFrame,
+    freq: str,
+    spec: ModelSpec,
+    season_length: int,
+    plan: BacktestPlan,
+    build=None,
 ):
     from statsforecast import StatsForecast
 
-    model = build_model(spec, season_length)
+    model = (build or build_model)(
+        spec, season_length
+    )  # resolved at call time so tests can patch it
     sf = StatsForecast(models=[model], freq=freq, n_jobs=1)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")

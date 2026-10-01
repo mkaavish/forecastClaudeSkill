@@ -12,6 +12,7 @@ import numpy as np
 import pandas as pd
 from scipy import stats as sps
 from statsmodels.tsa.seasonal import STL
+from statsmodels.tsa.stattools import adfuller
 
 from forecast.loading import LoadedSeries
 from forecast.schema import (
@@ -142,34 +143,50 @@ def _intermittency(y: np.ndarray, stats: Stats) -> Intermittency:
 
 
 def _trend(y: np.ndarray, stats: Stats) -> Trend:
-    """Monotonic trend, reported only when two independent tests agree.
+    """Monotonic trend, reported only when it is distinguishable from a random walk.
 
-    Kendall's tau alone flags ~75% of pure random walks as trending (measured on 40 seeds)
-    because it assumes independent errors. The drift test on first differences is the
-    standard guard: a random walk's differences have mean zero, a trending series' do not.
+    Kendall's tau alone flags ~88% of pure random walks as trending (it assumes independent
+    errors). So a trend must also pass one of two guards (measured over 60 seeds each):
+
+    * a drift test on first differences (random walks have mean-zero differences), or
+    * an ADF unit-root test with a trend term (trend-stationary series reject a unit root).
+
+    The drift test alone misses noisy trends (0% power at slope 1, noise 30, n=730) because
+    differencing amplifies noise; the ADF test recovers them (100%). Random-walk false
+    positives stay at 2-3%.
     """
     n = len(y)
+    none = Trend(direction="none", slope_per_period=None, relative_change=None, p_value=None,
+                 drift_p_value=None, adf_p_value=None)  # fmt: skip
     if n < TREND_MIN_OBS:
-        return Trend(direction="insufficient_data", slope_per_period=None, relative_change=None,
-                     p_value=None, drift_p_value=None)  # fmt: skip
+        return none.model_copy(update={"direction": "insufficient_data"})
     if np.ptp(y) == 0:
-        return Trend(direction="none", slope_per_period=None, relative_change=None,
-                     p_value=None, drift_p_value=None)  # fmt: skip
+        return none
     t = np.arange(n, dtype=float)
     idx = np.unique(np.linspace(0, n - 1, min(n, THEIL_SEN_MAX_POINTS)).astype(int))
     slope = float(sps.theilslopes(y[idx], t[idx])[0])
     p_value = float(sps.kendalltau(t, y).pvalue)
     diffs = np.diff(y)
     drift_p = float(sps.ttest_1samp(diffs, 0.0).pvalue) if np.std(diffs) > 0 else 0.0
+    adf_p = _adf_p_value(y)
     scale = abs(stats.median) or abs(stats.mean) or 1.0
     relative = slope * (n - 1) / scale
-    significant = p_value < TREND_P_VALUE and drift_p < TREND_P_VALUE
-    if significant and abs(relative) >= TREND_MIN_RELATIVE_CHANGE:
+    not_random_walk = drift_p < TREND_P_VALUE or (adf_p is not None and adf_p < TREND_P_VALUE)
+    if p_value < TREND_P_VALUE and not_random_walk and abs(relative) >= TREND_MIN_RELATIVE_CHANGE:
         direction = "positive" if slope > 0 else "negative"
     else:
         direction = "none"
     return Trend(direction=direction, slope_per_period=slope, relative_change=float(relative),
-                 p_value=p_value, drift_p_value=drift_p)  # fmt: skip
+                 p_value=p_value, drift_p_value=drift_p, adf_p_value=adf_p)  # fmt: skip
+
+
+def _adf_p_value(y: np.ndarray) -> float | None:
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            return float(adfuller(y, regression="ct", autolag="AIC")[1])
+    except (ValueError, np.linalg.LinAlgError):  # too short or degenerate
+        return None
 
 
 # --------------------------------------------------------------------------- seasonality

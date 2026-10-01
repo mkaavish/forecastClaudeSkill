@@ -71,3 +71,77 @@ def test_no_command_is_usage_error():
     with pytest.raises(SystemExit) as e:
         main([])
     assert e.value.code == 2
+
+
+# ------------------------------------------------------------ run
+
+
+@pytest.fixture(scope="module")
+def run_dir(tmp_path_factory):
+    """One real `forecast run --json` shared by the assertions below."""
+    root = tmp_path_factory.mktemp("run")
+    csv = root / "sales.csv"
+    synthetic.trend_seasonality(300).rename(columns={"value": "sales"}).to_csv(csv, index=False)
+    out = root / "results"
+    return csv, out
+
+
+def test_run_json_writes_artifacts_and_prints_a_valid_result(run_dir, capsys):
+    from forecast.schema import RunResult
+
+    csv, out = run_dir
+    code = main(["run", str(csv), "--horizon", "21", "--json", "--output", str(out)])
+    printed = json.loads(capsys.readouterr().out)
+    assert code == EXIT_OK
+    result = RunResult.model_validate(printed)
+    assert result.forecast.horizon == 21 and result.artifacts.directory == str(out.resolve())
+    assert sorted(p.name for p in out.iterdir()) == [
+        "backtest.csv",
+        "forecast.csv",
+        "profile.json",
+        "result.json",
+    ]
+    assert json.loads((out / "result.json").read_text()) == printed
+
+
+def test_bare_file_argument_means_run(run_dir, capsys, tmp_path):
+    csv, _ = run_dir
+    code = main([str(csv), "--horizon", "7", "--output", str(tmp_path / "o")])
+    text = capsys.readouterr().out
+    assert code == EXIT_OK and "Forecast of 'sales': 7 daily periods" in text
+    assert "Total over the horizon:" in text and (tmp_path / "o" / "forecast.csv").exists()
+
+
+def test_flags_may_precede_the_file(run_dir, capsys, tmp_path):
+    csv, _ = run_dir
+    assert main(["--horizon", "7", str(csv), "--output", str(tmp_path / "o2")]) == EXIT_OK
+    capsys.readouterr()
+
+
+def test_run_needs_input_text_and_json(tmp_path, capsys):
+    p = tmp_path / "multi.csv"
+    p.write_text(
+        "date,store,sales\n"
+        + "\n".join(f"2024-01-{d:02d},{s},{d}" for d in range(1, 21) for s in "AB")
+    )
+    assert main(["run", str(p)]) == EXIT_NEEDS_INPUT
+    text = capsys.readouterr().out
+    assert "Which one should be forecast?" in text and "--where store=<value>" in text
+    assert main(["run", str(p), "--json"]) == EXIT_NEEDS_INPUT
+    assert json.loads(capsys.readouterr().out)["status"] == "needs_input"
+
+
+def test_run_refused_text_and_json(tmp_path, capsys):
+    p = tmp_path / "flat.csv"
+    synthetic.constant().to_csv(p, index=False)
+    assert main(["run", str(p)]) == EXIT_REFUSED
+    assert "CONSTANT_SERIES" in capsys.readouterr().out
+    assert main(["run", str(p), "--json"]) == EXIT_REFUSED
+    assert json.loads(capsys.readouterr().out)["code"] == "CONSTANT_SERIES"
+
+
+def test_run_usage_errors():
+    for bad in (["run", "x.csv", "--horizon", "abc"], ["run"], ["run", "x.csv", "--agg", "median"]):
+        with pytest.raises(SystemExit) as e:
+            main(bad)
+        assert e.value.code == 2

@@ -493,6 +493,17 @@
     "Trend": {
       "additionalProperties": false,
       "properties": {
+        "adf_p_value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Adf P Value"
+        },
         "direction": {
           "enum": [
             "positive",
@@ -553,7 +564,8 @@
         "slope_per_period",
         "relative_change",
         "p_value",
-        "drift_p_value"
+        "drift_p_value",
+        "adf_p_value"
       ],
       "title": "Trend",
       "type": "object"

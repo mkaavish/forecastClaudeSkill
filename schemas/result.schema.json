@@ -1,0 +1,1358 @@
+{
+  "$defs": {
+    "Artifacts": {
+      "additionalProperties": false,
+      "properties": {
+        "backtest_csv": {
+          "title": "Backtest Csv",
+          "type": "string"
+        },
+        "directory": {
+          "title": "Directory",
+          "type": "string"
+        },
+        "forecast_csv": {
+          "title": "Forecast Csv",
+          "type": "string"
+        },
+        "plot": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Plot"
+        },
+        "profile_json": {
+          "title": "Profile Json",
+          "type": "string"
+        },
+        "result_json": {
+          "title": "Result Json",
+          "type": "string"
+        }
+      },
+      "required": [
+        "directory",
+        "profile_json",
+        "result_json",
+        "backtest_csv",
+        "forecast_csv"
+      ],
+      "title": "Artifacts",
+      "type": "object"
+    },
+    "BacktestPlan": {
+      "additionalProperties": false,
+      "properties": {
+        "backtest_horizon": {
+          "title": "Backtest Horizon",
+          "type": "integer"
+        },
+        "horizon": {
+          "title": "Horizon",
+          "type": "integer"
+        },
+        "min_train": {
+          "title": "Min Train",
+          "type": "integer"
+        },
+        "n_windows": {
+          "title": "N Windows",
+          "type": "integer"
+        },
+        "notices": {
+          "items": {
+            "$ref": "#/$defs/Notice"
+          },
+          "title": "Notices",
+          "type": "array"
+        },
+        "season_length": {
+          "title": "Season Length",
+          "type": "integer"
+        },
+        "shortened": {
+          "title": "Shortened",
+          "type": "boolean"
+        },
+        "step": {
+          "title": "Step",
+          "type": "integer"
+        },
+        "windows": {
+          "items": {
+            "$ref": "#/$defs/BacktestWindow"
+          },
+          "title": "Windows",
+          "type": "array"
+        }
+      },
+      "required": [
+        "horizon",
+        "backtest_horizon",
+        "n_windows",
+        "step",
+        "min_train",
+        "season_length",
+        "shortened",
+        "windows"
+      ],
+      "title": "BacktestPlan",
+      "type": "object"
+    },
+    "BacktestSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "levels": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Levels",
+          "type": "array"
+        },
+        "mase_scale": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Mase Scale"
+        },
+        "mase_scale_source": {
+          "enum": [
+            "initial_training",
+            "pre_final_window",
+            "undefined"
+          ],
+          "title": "Mase Scale Source",
+          "type": "string"
+        },
+        "models": {
+          "items": {
+            "$ref": "#/$defs/ModelBacktest"
+          },
+          "title": "Models",
+          "type": "array"
+        },
+        "plan": {
+          "$ref": "#/$defs/BacktestPlan"
+        },
+        "schema_version": {
+          "default": "1",
+          "title": "Schema Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "plan",
+        "mase_scale",
+        "mase_scale_source",
+        "levels",
+        "models"
+      ],
+      "title": "BacktestSummary",
+      "type": "object"
+    },
+    "BacktestWindow": {
+      "additionalProperties": false,
+      "description": "One rolling-origin split in observation-index space (end indices are exclusive).",
+      "properties": {
+        "index": {
+          "title": "Index",
+          "type": "integer"
+        },
+        "test_end": {
+          "title": "Test End",
+          "type": "integer"
+        },
+        "test_start": {
+          "title": "Test Start",
+          "type": "integer"
+        },
+        "train_end": {
+          "title": "Train End",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "index",
+        "train_end",
+        "test_start",
+        "test_end"
+      ],
+      "title": "BacktestWindow",
+      "type": "object"
+    },
+    "ColumnCandidate": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reasons",
+          "type": "array"
+        },
+        "score": {
+          "title": "Score",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "score"
+      ],
+      "title": "ColumnCandidate",
+      "type": "object"
+    },
+    "ForecastSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "change_vs_prior": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Change Vs Prior"
+        },
+        "clipped_at_zero": {
+          "title": "Clipped At Zero",
+          "type": "boolean"
+        },
+        "end": {
+          "title": "End",
+          "type": "string"
+        },
+        "horizon": {
+          "title": "Horizon",
+          "type": "integer"
+        },
+        "last_observed": {
+          "title": "Last Observed",
+          "type": "number"
+        },
+        "mean": {
+          "title": "Mean",
+          "type": "number"
+        },
+        "model": {
+          "title": "Model",
+          "type": "string"
+        },
+        "previous_total": {
+          "title": "Previous Total",
+          "type": "number"
+        },
+        "start": {
+          "title": "Start",
+          "type": "string"
+        },
+        "total": {
+          "title": "Total",
+          "type": "number"
+        },
+        "total_interval": {
+          "default": null,
+          "title": "Total Interval",
+          "type": "null"
+        }
+      },
+      "required": [
+        "model",
+        "horizon",
+        "start",
+        "end",
+        "last_observed",
+        "mean",
+        "total",
+        "previous_total",
+        "change_vs_prior",
+        "clipped_at_zero"
+      ],
+      "title": "ForecastSummary",
+      "type": "object"
+    },
+    "Intermittency": {
+      "additionalProperties": false,
+      "properties": {
+        "adi": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Adi"
+        },
+        "applicable": {
+          "title": "Applicable",
+          "type": "boolean"
+        },
+        "cv2": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Cv2"
+        },
+        "demand_class": {
+          "anyOf": [
+            {
+              "enum": [
+                "smooth",
+                "erratic",
+                "intermittent",
+                "lumpy"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Demand Class"
+        },
+        "zero_heavy": {
+          "title": "Zero Heavy",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "applicable",
+        "adi",
+        "cv2",
+        "demand_class",
+        "zero_heavy"
+      ],
+      "title": "Intermittency",
+      "type": "object"
+    },
+    "IntervalInfo": {
+      "additionalProperties": false,
+      "description": "How the forecast's prediction intervals were produced and how trustworthy they were.",
+      "properties": {
+        "backtest_points": {
+          "title": "Backtest Points",
+          "type": "integer"
+        },
+        "calibrated_coverage_80": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Calibrated Coverage 80"
+        },
+        "calibrated_coverage_95": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Calibrated Coverage 95"
+        },
+        "factor_80": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Factor 80"
+        },
+        "factor_95": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Factor 95"
+        },
+        "method": {
+          "enum": [
+            "native",
+            "calibrated"
+          ],
+          "title": "Method",
+          "type": "string"
+        },
+        "native_coverage_80": {
+          "title": "Native Coverage 80",
+          "type": "number"
+        },
+        "native_coverage_95": {
+          "title": "Native Coverage 95",
+          "type": "number"
+        },
+        "note": {
+          "default": "",
+          "title": "Note",
+          "type": "string"
+        }
+      },
+      "required": [
+        "method",
+        "backtest_points",
+        "native_coverage_80",
+        "native_coverage_95",
+        "factor_80",
+        "factor_95",
+        "calibrated_coverage_80",
+        "calibrated_coverage_95"
+      ],
+      "title": "IntervalInfo",
+      "type": "object"
+    },
+    "LoadReport": {
+      "additionalProperties": false,
+      "description": "What loading did to the raw file; the ``input`` section of later reports.",
+      "properties": {
+        "agg": {
+          "anyOf": [
+            {
+              "enum": [
+                "sum",
+                "mean"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Agg"
+        },
+        "date_column": {
+          "title": "Date Column",
+          "type": "string"
+        },
+        "dimension_columns": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Dimension Columns",
+          "type": "array"
+        },
+        "end": {
+          "title": "End",
+          "type": "string"
+        },
+        "file": {
+          "title": "File",
+          "type": "string"
+        },
+        "fill_policy": {
+          "enum": [
+            "interpolate",
+            "zero"
+          ],
+          "title": "Fill Policy",
+          "type": "string"
+        },
+        "frequency": {
+          "title": "Frequency",
+          "type": "string"
+        },
+        "frequency_name": {
+          "title": "Frequency Name",
+          "type": "string"
+        },
+        "longest_gap": {
+          "title": "Longest Gap",
+          "type": "integer"
+        },
+        "n_imputed": {
+          "title": "N Imputed",
+          "type": "integer"
+        },
+        "n_missing_timestamps": {
+          "title": "N Missing Timestamps",
+          "type": "integer"
+        },
+        "n_missing_values": {
+          "title": "N Missing Values",
+          "type": "integer"
+        },
+        "n_obs": {
+          "title": "N Obs",
+          "type": "integer"
+        },
+        "n_rows_raw": {
+          "title": "N Rows Raw",
+          "type": "integer"
+        },
+        "notices": {
+          "items": {
+            "$ref": "#/$defs/Notice"
+          },
+          "title": "Notices",
+          "type": "array"
+        },
+        "schema_version": {
+          "default": "1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "start": {
+          "title": "Start",
+          "type": "string"
+        },
+        "target_candidates": {
+          "items": {
+            "$ref": "#/$defs/ColumnCandidate"
+          },
+          "title": "Target Candidates",
+          "type": "array"
+        },
+        "target_column": {
+          "title": "Target Column",
+          "type": "string"
+        },
+        "where": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Where",
+          "type": "object"
+        }
+      },
+      "required": [
+        "file",
+        "date_column",
+        "target_column",
+        "frequency",
+        "frequency_name",
+        "n_rows_raw",
+        "n_obs",
+        "start",
+        "end",
+        "n_missing_timestamps",
+        "n_missing_values",
+        "n_imputed",
+        "longest_gap",
+        "fill_policy"
+      ],
+      "title": "LoadReport",
+      "type": "object"
+    },
+    "ModelBacktest": {
+      "additionalProperties": false,
+      "properties": {
+        "fit_seconds": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fit Seconds"
+        },
+        "kind": {
+          "enum": [
+            "baseline",
+            "complex"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "metrics": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ModelMetrics"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "reason": {
+          "default": "",
+          "title": "Reason",
+          "type": "string"
+        },
+        "season_length": {
+          "title": "Season Length",
+          "type": "integer"
+        },
+        "status": {
+          "enum": [
+            "ok",
+            "failed",
+            "skipped"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "kind",
+        "status",
+        "season_length"
+      ],
+      "title": "ModelBacktest",
+      "type": "object"
+    },
+    "ModelMetrics": {
+      "additionalProperties": false,
+      "description": "Pooled over every backtest window (windows are equal-sized, so pooling == averaging).",
+      "properties": {
+        "coverage_80": {
+          "title": "Coverage 80",
+          "type": "number"
+        },
+        "coverage_95": {
+          "title": "Coverage 95",
+          "type": "number"
+        },
+        "mae": {
+          "title": "Mae",
+          "type": "number"
+        },
+        "mase": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Mase"
+        },
+        "mean_width_80": {
+          "title": "Mean Width 80",
+          "type": "number"
+        },
+        "rmse": {
+          "title": "Rmse",
+          "type": "number"
+        },
+        "smape": {
+          "title": "Smape",
+          "type": "number"
+        },
+        "window_mae": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Window Mae",
+          "type": "array"
+        },
+        "window_mase": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Window Mase"
+        }
+      },
+      "required": [
+        "mae",
+        "rmse",
+        "smape",
+        "mase",
+        "coverage_80",
+        "coverage_95",
+        "mean_width_80",
+        "window_mae",
+        "window_mase"
+      ],
+      "title": "ModelMetrics",
+      "type": "object"
+    },
+    "Notice": {
+      "additionalProperties": false,
+      "description": "A non-fatal observation about the data or the run (the ``warnings`` list).",
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "details": {
+          "additionalProperties": true,
+          "title": "Details",
+          "type": "object"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "info",
+            "warn"
+          ],
+          "title": "Severity",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "severity",
+        "message"
+      ],
+      "title": "Notice",
+      "type": "object"
+    },
+    "Outlier": {
+      "additionalProperties": false,
+      "properties": {
+        "ds": {
+          "title": "Ds",
+          "type": "string"
+        },
+        "robust_z": {
+          "title": "Robust Z",
+          "type": "number"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "ds",
+        "value",
+        "robust_z"
+      ],
+      "title": "Outlier",
+      "type": "object"
+    },
+    "OutlierSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "fraction": {
+          "title": "Fraction",
+          "type": "number"
+        },
+        "method": {
+          "title": "Method",
+          "type": "string"
+        },
+        "n_outliers": {
+          "title": "N Outliers",
+          "type": "integer"
+        },
+        "top": {
+          "items": {
+            "$ref": "#/$defs/Outlier"
+          },
+          "title": "Top",
+          "type": "array"
+        }
+      },
+      "required": [
+        "method",
+        "n_outliers",
+        "fraction",
+        "top"
+      ],
+      "title": "OutlierSummary",
+      "type": "object"
+    },
+    "ProfileReport": {
+      "additionalProperties": false,
+      "properties": {
+        "constant": {
+          "title": "Constant",
+          "type": "boolean"
+        },
+        "input": {
+          "$ref": "#/$defs/LoadReport"
+        },
+        "intermittency": {
+          "$ref": "#/$defs/Intermittency"
+        },
+        "near_constant": {
+          "title": "Near Constant",
+          "type": "boolean"
+        },
+        "outliers": {
+          "$ref": "#/$defs/OutlierSummary"
+        },
+        "schema_version": {
+          "default": "1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "seasonality": {
+          "$ref": "#/$defs/Seasonality"
+        },
+        "stats": {
+          "$ref": "#/$defs/Stats"
+        },
+        "status": {
+          "const": "ok",
+          "default": "ok",
+          "title": "Status",
+          "type": "string"
+        },
+        "trend": {
+          "$ref": "#/$defs/Trend"
+        },
+        "warnings": {
+          "items": {
+            "$ref": "#/$defs/Notice"
+          },
+          "title": "Warnings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "input",
+        "stats",
+        "constant",
+        "near_constant",
+        "intermittency",
+        "outliers",
+        "trend",
+        "seasonality"
+      ],
+      "title": "ProfileReport",
+      "type": "object"
+    },
+    "RankedModel": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "baseline",
+            "complex"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "rank": {
+          "title": "Rank",
+          "type": "integer"
+        },
+        "score": {
+          "title": "Score",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "kind",
+        "score",
+        "rank"
+      ],
+      "title": "RankedModel",
+      "type": "object"
+    },
+    "RunMeta": {
+      "additionalProperties": false,
+      "properties": {
+        "elapsed_seconds": {
+          "title": "Elapsed Seconds",
+          "type": "number"
+        },
+        "forecast_version": {
+          "title": "Forecast Version",
+          "type": "string"
+        },
+        "pandas_version": {
+          "title": "Pandas Version",
+          "type": "string"
+        },
+        "python_version": {
+          "title": "Python Version",
+          "type": "string"
+        },
+        "statsforecast_version": {
+          "title": "Statsforecast Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "forecast_version",
+        "statsforecast_version",
+        "pandas_version",
+        "python_version",
+        "elapsed_seconds"
+      ],
+      "title": "RunMeta",
+      "type": "object"
+    },
+    "Seasonality": {
+      "additionalProperties": false,
+      "properties": {
+        "candidates": {
+          "items": {
+            "$ref": "#/$defs/SeasonalityCandidate"
+          },
+          "title": "Candidates",
+          "type": "array"
+        },
+        "multiple": {
+          "title": "Multiple",
+          "type": "boolean"
+        },
+        "season_length": {
+          "title": "Season Length",
+          "type": "integer"
+        },
+        "trend_strength": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Trend Strength"
+        }
+      },
+      "required": [
+        "candidates",
+        "season_length",
+        "multiple",
+        "trend_strength"
+      ],
+      "title": "Seasonality",
+      "type": "object"
+    },
+    "SeasonalityCandidate": {
+      "additionalProperties": false,
+      "properties": {
+        "cycles": {
+          "title": "Cycles",
+          "type": "number"
+        },
+        "detected": {
+          "title": "Detected",
+          "type": "boolean"
+        },
+        "independent": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Independent"
+        },
+        "note": {
+          "default": "",
+          "title": "Note",
+          "type": "string"
+        },
+        "p_value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "P Value"
+        },
+        "period": {
+          "title": "Period",
+          "type": "integer"
+        },
+        "strength": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Strength"
+        },
+        "tested": {
+          "title": "Tested",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "period",
+        "cycles",
+        "tested",
+        "strength",
+        "p_value",
+        "detected"
+      ],
+      "title": "SeasonalityCandidate",
+      "type": "object"
+    },
+    "Selection": {
+      "additionalProperties": false,
+      "description": "The deterministic model choice. Claude explains it; it never makes it.",
+      "properties": {
+        "best_baseline": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Best Baseline"
+        },
+        "best_complex": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Best Complex"
+        },
+        "explanation": {
+          "title": "Explanation",
+          "type": "string"
+        },
+        "improvement_over_baseline": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Improvement Over Baseline"
+        },
+        "metric": {
+          "enum": [
+            "mase",
+            "mae"
+          ],
+          "title": "Metric",
+          "type": "string"
+        },
+        "ranking": {
+          "items": {
+            "$ref": "#/$defs/RankedModel"
+          },
+          "title": "Ranking",
+          "type": "array"
+        },
+        "reason": {
+          "enum": [
+            "beat_baseline_by_margin",
+            "baseline_best",
+            "baseline_within_margin",
+            "only_baselines_ran",
+            "no_baseline_ran"
+          ],
+          "title": "Reason",
+          "type": "string"
+        },
+        "required_margin": {
+          "title": "Required Margin",
+          "type": "number"
+        },
+        "schema_version": {
+          "default": "1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "winner": {
+          "title": "Winner",
+          "type": "string"
+        },
+        "winner_kind": {
+          "enum": [
+            "baseline",
+            "complex"
+          ],
+          "title": "Winner Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "winner",
+        "winner_kind",
+        "reason",
+        "metric",
+        "required_margin",
+        "best_baseline",
+        "best_complex",
+        "improvement_over_baseline",
+        "ranking",
+        "explanation"
+      ],
+      "title": "Selection",
+      "type": "object"
+    },
+    "Stats": {
+      "additionalProperties": false,
+      "properties": {
+        "cv": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Cv"
+        },
+        "max": {
+          "title": "Max",
+          "type": "number"
+        },
+        "mean": {
+          "title": "Mean",
+          "type": "number"
+        },
+        "median": {
+          "title": "Median",
+          "type": "number"
+        },
+        "min": {
+          "title": "Min",
+          "type": "number"
+        },
+        "n": {
+          "title": "N",
+          "type": "integer"
+        },
+        "n_negative": {
+          "title": "N Negative",
+          "type": "integer"
+        },
+        "q25": {
+          "title": "Q25",
+          "type": "number"
+        },
+        "q75": {
+          "title": "Q75",
+          "type": "number"
+        },
+        "std": {
+          "title": "Std",
+          "type": "number"
+        },
+        "zero_fraction": {
+          "title": "Zero Fraction",
+          "type": "number"
+        }
+      },
+      "required": [
+        "n",
+        "mean",
+        "std",
+        "min",
+        "q25",
+        "median",
+        "q75",
+        "max",
+        "zero_fraction",
+        "n_negative",
+        "cv"
+      ],
+      "title": "Stats",
+      "type": "object"
+    },
+    "Trend": {
+      "additionalProperties": false,
+      "properties": {
+        "adf_p_value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Adf P Value"
+        },
+        "direction": {
+          "enum": [
+            "positive",
+            "negative",
+            "none",
+            "insufficient_data"
+          ],
+          "title": "Direction",
+          "type": "string"
+        },
+        "drift_p_value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Drift P Value"
+        },
+        "p_value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "P Value"
+        },
+        "relative_change": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Relative Change"
+        },
+        "slope_per_period": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Slope Per Period"
+        }
+      },
+      "required": [
+        "direction",
+        "slope_per_period",
+        "relative_change",
+        "p_value",
+        "drift_p_value",
+        "adf_p_value"
+      ],
+      "title": "Trend",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "result.json: everything Claude (or a script) needs, validated.",
+  "properties": {
+    "artifacts": {
+      "$ref": "#/$defs/Artifacts"
+    },
+    "backtest": {
+      "$ref": "#/$defs/BacktestSummary"
+    },
+    "forecast": {
+      "$ref": "#/$defs/ForecastSummary"
+    },
+    "input": {
+      "$ref": "#/$defs/LoadReport"
+    },
+    "intervals": {
+      "$ref": "#/$defs/IntervalInfo"
+    },
+    "meta": {
+      "$ref": "#/$defs/RunMeta"
+    },
+    "profile": {
+      "$ref": "#/$defs/ProfileReport"
+    },
+    "schema_version": {
+      "default": "1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "selection": {
+      "$ref": "#/$defs/Selection"
+    },
+    "status": {
+      "enum": [
+        "ok",
+        "ok_with_warnings"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "warnings": {
+      "items": {
+        "$ref": "#/$defs/Notice"
+      },
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "status",
+    "input",
+    "profile",
+    "backtest",
+    "selection",
+    "forecast",
+    "intervals",
+    "warnings",
+    "artifacts",
+    "meta"
+  ],
+  "title": "RunResult",
+  "type": "object"
+}

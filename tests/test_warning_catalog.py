@@ -11,6 +11,7 @@ from forecast.backtest import plan_backtest, resolve_horizon
 from forecast.diagnostics import WARNING_CODES, backtest_notices, series_notices
 from forecast.loading import load_series
 from forecast.profile import profile_series
+from forecast.schema import RefusedError
 from forecast.selection import select_model
 from tests import synthetic
 from tests.factories import model, summary
@@ -109,6 +110,40 @@ def _date_rows_dropped(tmp_path):
     return load_codes(tmp_path, "date,sales\n" + "\n".join(rows))
 
 
+def _refit_failed(tmp_path):
+    from forecast.pipeline import fit_with_fallback
+
+    def boom(spec, season_length):
+        raise RuntimeError("x")
+
+    sel = select_model(summary(model("Naive", 1.0), model("AutoETS", 0.5)))
+    data = pd.DataFrame({"ds": pd.date_range("2024-01-01", periods=60), "y": np.arange(60.0)})
+    notices = []
+    try:
+        fit_with_fallback(
+            data, "D", summary(model("Naive", 1.0), model("AutoETS", 0.5)), sel, 7, boom
+        )
+    except RefusedError as exc:  # every model fails: the notices ride on the refusal details
+        notices = exc.details["failures"]
+    return {"WINNER_REFIT_FAILED"} if len(notices) == 2 else set()
+
+
+def _calibrated(tmp_path):
+    from forecast.intervals import calibrate
+    from tests.test_intervals import backtest_rows, forecast_rows
+
+    return {n.code for n in calibrate(backtest_rows(width_sigma=0.25), forecast_rows(), "M")[2]}
+
+
+def _clipped(tmp_path):
+    from forecast.pipeline import _clip_non_negative
+    from tests.test_intervals import forecast_rows
+
+    frame = forecast_rows()
+    frame["lo_80"] = -1.0
+    return {n.code for n in _clip_non_negative(frame, True)[1]}
+
+
 TRIGGERS = {
     # loading
     "TARGET_AUTO_SELECTED": lambda t: load_codes(t, daily(units_sold=range(40), price=[9.9] * 40)),
@@ -164,6 +199,10 @@ TRIGGERS = {
     "WIDE_INTERVALS": lambda t: backtest_codes(
         model("Naive", 2.0), model("AutoETS", 0.5, width=5.0)
     ),
+    # forecasting
+    "WINNER_REFIT_FAILED": _refit_failed,
+    "INTERVALS_CALIBRATED": _calibrated,
+    "FORECAST_CLIPPED": _clipped,
 }
 
 

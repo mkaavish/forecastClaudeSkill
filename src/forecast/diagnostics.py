@@ -45,6 +45,10 @@ WARNING_CODES: dict[str, str] = {
     "RECENT_DEGRADATION": "The latest backtest window was much worse than earlier ones.",
     "LOW_COVERAGE": "The selected model's 80% interval contained far fewer than 80% of actuals.",
     "WIDE_INTERVALS": "The 80% interval is very wide compared with the spread of the history.",
+    # forecasting
+    "WINNER_REFIT_FAILED": "The selected model could not be refit on the full history; the next best was used.",
+    "INTERVALS_CALIBRATED": "Backtest coverage was far from nominal, so the intervals were rescaled.",
+    "FORECAST_CLIPPED": "Negative forecast values were raised to zero because the history is non-negative.",
 }
 
 SHORT_HISTORY_OBS = 50

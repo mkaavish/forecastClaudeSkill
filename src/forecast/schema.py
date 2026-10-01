@@ -132,9 +132,10 @@ class Trend(_Model):
     slope_per_period: float | None  # Theil-Sen
     relative_change: float | None  # slope * (n - 1) / |median|
     p_value: float | None  # Kendall tau test of the (seasonally adjusted) series against time
-    drift_p_value: (
+    drift_p_value: float | None  # t-test that first differences have non-zero mean
+    adf_p_value: (
         float | None
-    )  # t-test that first differences have non-zero mean; guards against random walks
+    )  # ADF unit-root test with trend; small p => trend-stationary, not a random walk
 
 
 class SeasonalityCandidate(_Model):
@@ -257,6 +258,69 @@ class Selection(_Model):
     explanation: str
 
 
+class IntervalInfo(_Model):
+    """How the forecast's prediction intervals were produced and how trustworthy they were."""
+
+    method: Literal["native", "calibrated"]
+    backtest_points: int
+    native_coverage_80: (
+        float  # share of backtest actuals inside the model's own nominal 80% interval
+    )
+    native_coverage_95: float
+    factor_80: float | None  # width multiplier applied (calibrated only)
+    factor_95: float | None
+    calibrated_coverage_80: float | None  # on the same backtest points the factor was fitted on
+    calibrated_coverage_95: float | None
+    note: str = ""
+
+
+class ForecastSummary(_Model):
+    model: str  # model that produced the forecast (the selected one unless its refit failed)
+    horizon: int
+    start: str
+    end: str
+    last_observed: float
+    mean: float
+    total: float  # sum of point forecasts; only meaningful when the target is a flow (sales, visits...)
+    previous_total: float  # sum of the last `horizon` observations
+    change_vs_prior: float | None  # total / previous_total - 1
+    total_interval: None = None  # V1 does not estimate an interval for sums (errors are correlated)
+    clipped_at_zero: bool
+
+
+class Artifacts(_Model):
+    directory: str
+    profile_json: str
+    result_json: str
+    backtest_csv: str
+    forecast_csv: str
+    plot: str | None = None
+
+
+class RunMeta(_Model):
+    forecast_version: str
+    statsforecast_version: str
+    pandas_version: str
+    python_version: str
+    elapsed_seconds: float
+
+
+class RunResult(_Model):
+    """result.json: everything Claude (or a script) needs, validated."""
+
+    schema_version: str = SCHEMA_VERSION
+    status: Literal["ok", "ok_with_warnings"]
+    input: LoadReport
+    profile: ProfileReport
+    backtest: BacktestSummary
+    selection: Selection
+    forecast: ForecastSummary
+    intervals: IntervalInfo
+    warnings: list[Notice]  # the canonical, de-duplicated list across every stage
+    artifacts: Artifacts
+    meta: RunMeta
+
+
 class NeedsInputReport(_Model):
     schema_version: str = SCHEMA_VERSION
     status: Literal["needs_input"] = "needs_input"
@@ -300,6 +364,7 @@ CONTRACTS: dict[str, type[BaseModel]] = {
     "profile": ProfileReport,
     "backtest": BacktestSummary,
     "selection": Selection,
+    "result": RunResult,
     "needs_input": NeedsInputReport,
     "refusal": RefusalReport,
 }

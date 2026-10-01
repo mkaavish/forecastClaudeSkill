@@ -101,3 +101,20 @@ A random walk has nothing to forecast, yet complex models are "promoted" 30% of 
 Behaviour check (8 seeds per series): trend + seasonality produced **no** warnings; white noise produced only `BASELINE_WON`; every random walk got `POOR_BACKTEST`; a level shift in the last 10 observations triggered `RECENT_DEGRADATION`, `POOR_BACKTEST` and `UNSTABLE_ACROSS_WINDOWS` in 8/8 runs. Cost: `RECENT_DEGRADATION` fired once on a clean weekly series (1/8, an expected false-positive rate for a ratio test on 5 noisy windows).
 
 `WARNING_CODES` is the single catalogue; a test asserts every code is catalogued, emitted somewhere in the source, and has a test that makes it fire.
+
+## Phase 6 findings (forecast, intervals, run)
+
+| # | Finding | Consequence |
+|---|---|---|
+| 23 | The Phase 2 trend rule (Kendall **and** a drift test on first differences) reported "no trend" for the retail example, which grows ~73% over its span: with per-step noise far larger than per-step growth, differencing destroys the signal (0% power at slope 1, noise 30, n=730). | A trend now also passes if an **ADF unit-root test with a trend term** rejects a unit root (trend-stationary, not a random walk). Measured over 60 seeds: random walks flagged 2-3% (unchanged), noisy trends found 100% (was 0%), white noise 0%. `Trend.adf_p_value` added to the profile. Supersedes the "drift guard alone" wording of finding 16. |
+| 24 | **Interval calibration, tested out of sample** (hold out the last 14 points, 10 seeds per scenario). Rescaling whenever backtest coverage left [0.70, 0.90] *hurt* random walks (0.78 -> 0.71: a few correlated windows make coverage estimates noisy). Where it matters (linear trend, baselines only: native 80% coverage **0.18**) widening gave **0.89**. | Calibration is **widen-only and triggers only below 60% native backtest coverage** (needs >= 30 backtest points). Intervals are never narrowed. Method: per-side scale factor = (n+1)-adjusted quantile of |error| / the model's own half-width on that side, so the model's growth with the horizon and asymmetry are kept. A calibrated run replaces `LOW_COVERAGE` with `INTERVALS_CALIBRATED`. Coverage after calibration is measured on the points it was fitted on, so out-of-sample coverage will be somewhat lower; `IntervalInfo.note` says so. |
+| 25 | Aggregate (sum) intervals cannot be derived from per-step intervals (errors are correlated, StatsForecast gives no joint paths). | `forecast.total_interval` is always `null` in V1; `total` is the sum of point forecasts and is only meaningful for flow quantities (sales, visits), which Claude must judge. |
+
+Run design:
+- **Fallback:** if the selected model cannot be refit on the full history, the next model in the backtest ranking is used (deterministic), `WINNER_REFIT_FAILED` is raised, and `selection` still names the original winner; `forecast.model` names the model actually used.
+- **Non-negative histories** have forecasts and bounds clipped at 0, reported as `FORECAST_CLIPPED`.
+- **result.json is self-contained** (input, profile, backtest, selection, forecast, intervals, merged `warnings`, artifact paths, versions). `warnings` is the canonical de-duplicated list; `input.notices` and `profile.warnings` repeat subsets of it.
+- **Timing fields** (`meta`, per-model `fit_seconds`) are the only non-deterministic content; everything else is reproducible (tested).
+- **CLI:** `forecast FILE` == `forecast run FILE`; `run` writes `result.json`, `profile.json`, `forecast.csv`, `backtest.csv` to `--output` (default `./forecast-output/<file stem>/`) and prints a short summary, or the full result with `--json`; `needs_input`/`refused` print readable text, or JSON with `--json`.
+- **Known gap:** `forecast.png` is Phase 7; `Artifacts.plot` is `null` until then.
+- **Demo data:** the example datasets were created in this phase (the acceptance criteria run on them); `examples/README.md` describes each. The SaaS example grows 2.8% a month; additive-trend models underfit that, so it shows a poor-backtest warning with recalibrated intervals. It may be softened in the polish phase.
