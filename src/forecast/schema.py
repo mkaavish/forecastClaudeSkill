@@ -254,6 +254,7 @@ class Selection(_Model):
     best_baseline: str | None
     best_complex: str | None
     improvement_over_baseline: float | None  # 1 - complex_score / baseline_score; may be negative
+    improvement_over_naive: float | None  # 1 - winner_score / naive_score; 0 when Naive itself won
     ranking: list[RankedModel]  # successful models, best score first
     explanation: str
 

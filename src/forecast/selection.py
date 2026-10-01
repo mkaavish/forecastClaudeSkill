@@ -18,10 +18,14 @@ from __future__ import annotations
 from forecast.models import REGISTRY
 from forecast.schema import BacktestSummary, ModelBacktest, RankedModel, RefusedError, Selection
 
-# A complex model must improve on the best baseline by this fraction. Measured on 20 seeds
-# per series type (Phase 5): pure noise was never promoted at 3%; random walks were promoted
-# 30% of the time at 3%, 15% at 5%, 5% at 10%; every series with real signal improved by at
-# least 22%, so 5% costs nothing there. Re-tuned on a wider benchmark in the release phase.
+# A complex model must improve on the best baseline by this fraction.
+#
+# Chosen from held-out error (benchmarks/tune_margin.py, 260 synthetic series, 13 types): margins
+# from 0% to 10% were statistically indistinguishable in forecast accuracy (paired bootstrap 95%
+# CIs of the difference all contain 0), while always choosing the baseline gave ~40% more error.
+# The margin is therefore not an accuracy lever. It stops the tool announcing structure in noise:
+# on series with nothing to learn a complex model beat the baseline by chance 72% of the time with
+# no margin and 9% with 5%, and when promoted there it did 12.5% worse on held-out data.
 MARGIN = 0.05
 
 _SIMPLICITY = {spec.name: spec.simplicity for spec in REGISTRY}
@@ -75,6 +79,10 @@ def select_model(summary: BacktestSummary, margin: float = MARGIN) -> Selection:
     else:
         winner, reason = complex_, "no_baseline_ran"  # type: ignore[assignment]
 
+    naive = next((m for m in ok if m.name == "Naive"), None)
+    vs_naive = None
+    if naive is not None and _score(naive, metric) > 0:
+        vs_naive = 1 - _score(winner, metric) / _score(naive, metric)
     return Selection(
         winner=winner.name,
         winner_kind=winner.kind,
@@ -84,6 +92,7 @@ def select_model(summary: BacktestSummary, margin: float = MARGIN) -> Selection:
         best_baseline=baseline.name if baseline else None,
         best_complex=complex_.name if complex_ else None,
         improvement_over_baseline=improvement,
+        improvement_over_naive=vs_naive,
         ranking=ranking,
         explanation=_explain(
             winner, baseline, complex_, reason, metric, margin, improvement, summary

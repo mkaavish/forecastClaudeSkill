@@ -30,9 +30,12 @@ def test_clean_predictable_series_raises_no_warnings(tmp_path):
         assert warning_codes(synthetic.trend_seasonality(seed=seed), tmp_path) == set()
 
 
-def test_white_noise_only_notes_the_baseline_choice(tmp_path):
-    for seed in range(3):
-        assert warning_codes(synthetic.white_noise(seed=seed), tmp_path) == {"BASELINE_WON"}
+def test_white_noise_notes_the_baseline_choice_and_rarely_anything_else(tmp_path):
+    results = [warning_codes(synthetic.white_noise(seed=seed), tmp_path) for seed in range(6)]
+    assert all("BASELINE_WON" in codes for codes in results)
+    assert all(codes <= {"BASELINE_WON", "POOR_BACKTEST"} for codes in results)
+    # the mean beats Naive by ~30% on noise, so "barely better than Naive" is a rare flag
+    assert sum("POOR_BACKTEST" in codes for codes in results) <= 2
 
 
 def test_random_walk_is_flagged_as_poorly_predictable(tmp_path):

@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Python ${{ matrix.python }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Install
+        run: uv sync --frozen --python ${{ matrix.python }}
+      - name: Lint
+        run: |
+          uv run ruff check src tests evals benchmarks examples
+          uv run ruff format --check src tests evals benchmarks examples
+      - name: Tests
+        run: uv run pytest -q
+      - name: Schemas are up to date
+        run: |
+          uv run python -m forecast.schema schemas
+          git diff --exit-code schemas
+
+  # The live skill evals (evals/run_skill_evals.py) call Claude and cost usage, so they are
+  # run by hand before a release, not here.

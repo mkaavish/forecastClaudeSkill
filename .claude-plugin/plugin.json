@@ -1,6 +1,6 @@
 {
   "name": "forecast",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Autonomous forecasting analyst: statistically backtested forecasts with automatic model selection and plain-English analysis.",
   "author": { "name": "mkaavish" },
   "homepage": "https://github.com/mkaavish/forecastClaudeSkill",

@@ -26,10 +26,10 @@ def retail_sales() -> pd.DataFrame:
 
 
 def saas_revenue() -> pd.DataFrame:
-    """Monthly recurring revenue: compounding growth with mild noise."""
+    """Monthly recurring revenue: steady compounding growth (1.5% a month) with mild noise."""
     rng = np.random.default_rng(202)
     months = pd.date_range("2021-01-01", periods=60, freq="MS")
-    mrr = 40000 * 1.028 ** np.arange(60) * rng.normal(1.0, 0.012, 60)
+    mrr = 40000 * 1.015 ** np.arange(60) * rng.normal(1.0, 0.012, 60)
     return pd.DataFrame({"month": months, "mrr": mrr.round(0).astype(int)})
 
 
@@ -61,9 +61,22 @@ def multi_store_sales() -> pd.DataFrame:
         for product, p_scale in (("Widget", 1.0), ("Gadget", 0.6)):
             base = 50 * s_scale * p_scale
             for i, d in enumerate(dates):
-                units = base * (1 + 0.15 * np.sin(2 * np.pi * i / 7)) * rng.normal(1, 0.06) + 0.1 * i
-                rows.append((d, store, product, int(round(units)), int(rng.integers(200, 400)), 9.99 if product == "Widget" else 24.5))
-    return pd.DataFrame(rows, columns=["date", "store", "product", "units_sold", "inventory", "price"])
+                units = (
+                    base * (1 + 0.15 * np.sin(2 * np.pi * i / 7)) * rng.normal(1, 0.06) + 0.1 * i
+                )
+                rows.append(
+                    (
+                        d,
+                        store,
+                        product,
+                        round(units),
+                        int(rng.integers(200, 400)),
+                        9.99 if product == "Widget" else 24.5,
+                    )
+                )
+    return pd.DataFrame(
+        rows, columns=["date", "store", "product", "units_sold", "inventory", "price"]
+    )
 
 
 if __name__ == "__main__":

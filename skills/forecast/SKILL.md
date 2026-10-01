@@ -109,6 +109,21 @@ Rules for the details:
 - **Few windows / short history**: say how little evidence the selection rests on.
 - Keep it short enough to read in a minute. Offer the detail instead of dumping it.
 
+## Before you send: check your own answer
+
+Live testing showed these slips, so check for them every time:
+
+- **Every number must appear in the engine's output or `result.json`**, with the same digits. Do
+  not derive new ones: no "two years" or "104 weeks" from the dates, no counting days, no
+  percentages or differences of your own, no re-rounding (the report prints the mean as
+  15,642, so write 15,642, not 15,641). Use dates as printed and the counts the engine gives.
+- **No causal language about the data**: no "because", "due to", "caused by", "driven by",
+  "as a result of", and no claims about what an outlier did to the trend or forecast (you cannot
+  know). Say only that outliers were flagged and kept, and that results could change without them.
+- **Speculation lives in one place**: the optional "Possible interpretations" section, labelled as
+  hypotheses. Do not put guesses about events (promotions, openings, holidays) in the facts,
+  forecast or risk sections, and do not invent examples of such events.
+
 ## References (read when needed)
 
 - `references/interpretation.md`: how to explain results, a plain-language translation of every

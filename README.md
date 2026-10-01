@@ -8,11 +8,13 @@
   <img src="https://img.shields.io/badge/Website%20%26%20Documentation-Visit-000000?style=for-the-badge" alt="Website & Documentation">
 </a>
 
-```bash
-/forecast sales.csv
+```text
+/forecast:forecast sales.csv --horizon 30
 ```
 
 > **Claude understands the problem. Python does the math.**
+
+![A 28-day sales forecast: history, forecast, and 80% / 95% prediction intervals](docs/images/retail_sales_forecast.png)
 
 ---
 
@@ -28,13 +30,7 @@ date,sales
 ...
 ```
 
-Then run:
-
-```bash
-/forecast sales.csv
-```
-
-`/forecast` handles the forecasting workflow:
+`/forecast` runs the whole forecasting workflow:
 
 ```text
 Dataset
@@ -43,24 +39,99 @@ Profile & validate
    ↓
 Detect frequency / trend / seasonality
    ↓
-Prepare time series
+Prepare the series
    ↓
-Run candidate models
-   ↓
-Rolling backtests
+Rolling backtests of every eligible model
    ↓
 Compare forecast error
    ↓
-Select best model
+Select a model (deterministically)
    ↓
-Generate forecast + intervals
+Generate forecast + prediction intervals + chart
    ↓
 Claude explains the results
 ```
 
 The goal isn't to pick the most sophisticated model.
 
-The goal is to pick the model that performs best on historical data.
+The goal is to pick the model that performs best on data it hasn't seen — and to say so plainly when nothing beats a simple baseline, or when the data can't support a forecast at all.
+
+---
+
+## Install
+
+You need [Claude Code](https://claude.com/claude-code) and [`uv`](https://docs.astral.sh/uv/) (the one prerequisite; it installs Python and the dependencies for you).
+
+```bash
+brew install uv
+```
+
+(or `pip install uv`). Then, inside Claude Code:
+
+```text
+/plugin marketplace add mkaavish/forecastClaudeSkill
+/plugin install forecast@forecast-skill
+```
+
+The first forecast takes about a minute while dependencies install. After that, runs take seconds.
+
+> **Command name.** Claude Code namespaces plugin skills, so the command is `/forecast:forecast`.
+
+---
+
+## Usage
+
+```text
+/forecast:forecast sales.csv
+/forecast:forecast sales.csv --horizon 30
+/forecast:forecast revenue.csv --target revenue
+/forecast:forecast demand.csv --where store=North --where product=Widget
+/forecast:forecast demand.csv --agg sum
+```
+
+You can also describe what you want in words:
+
+```text
+/forecast:forecast demand.csv total units sold across all stores, next 14 days
+```
+
+| Option | What it does |
+|---|---|
+| `--horizon N` | Periods to forecast. Default depends on frequency (daily 28, weekly 13, monthly 12, quarterly 4). |
+| `--target COL` | Column to forecast. Inferred when obvious. |
+| `--date COL` | Date column. Inferred when obvious. |
+| `--where COL=VALUE` | Forecast a single slice (repeatable). |
+| `--agg sum\|mean` | Combine rows that share a timestamp (e.g. total across stores). |
+| `--fill interpolate\|zero` | How to fill missing periods. |
+| `--date-order dmy\|mdy` | Resolve ambiguous dates like `03/04/2024`. |
+| `--output DIR` | Where to write result files (default `./forecast-output/<file name>/`). |
+
+The interface is intentionally built around intelligent defaults, not dozens of required options.
+
+---
+
+## Example
+
+Real output from `forecast examples/retail_sales.csv --horizon 30`:
+
+```text
+FORECAST ANALYSIS: sales
+
+Horizon           30 daily periods (2026-01-01 to 2026-01-30)
+Pattern           weekly seasonality (period 7, strength 0.82); upward trend (+54% over the history)
+Model             AutoETS
+Why               AutoETS had the lowest MASE (0.974) over 5 rolling backtest windows and beat the best baseline, SeasonalNaive (1.21), by 19%, more than the 5% a complex model must clear.
+Backtest          MASE 0.97, MAE 593.4, sMAPE 4.0% over 5 rolling windows of 30 steps
+Sum of forecasts  469,257 (+3.0% vs the previous 30 periods, 455,373)
+Mean per period   15,642
+Uncertainty       80% interval 13,389 to 15,656 at 2026-01-01, 15,510 to 17,779 at 2026-01-30; the interval is 1.00x as wide at the end as at the start
+Intervals         native; the model's own 80% interval covered 95% of backtest actuals
+
+Warnings
+  [OUTLIERS] 9 potential outliers flagged (kept in the data).
+```
+
+Inside Claude Code you get the same facts as a short analysis that keeps three things apart: **what the data show**, **what the model forecasts**, and (optionally, clearly labelled) **possible interpretations**.
 
 ---
 
@@ -74,153 +145,98 @@ They are not forecasting engines.
 
 ### Claude
 
-Claude handles:
+- understands the dataset and your intent
+- asks when the request is ambiguous — it never guesses
+- orchestrates the analysis
+- explains results in plain English, separating observed facts from forecasts from interpretation
 
-- understanding the dataset
-- interpreting user intent
-- identifying potential forecasting problems
-- resolving ambiguous columns
-- orchestrating the analysis
-- interpreting model results
-- explaining forecasts in plain English
+Claude never computes a statistic, never chooses the model, and never opens your data file. If it needs a number to say something true, the engine provides it.
 
 ### Python
 
-Python handles:
-
-- data validation
-- statistical calculations
+- data validation and profiling
 - frequency inference
-- time-series preprocessing
 - backtesting
-- model fitting
-- error metrics
+- model fitting and error metrics
 - model selection
 - prediction intervals
-- forecast generation
-- visualization
+- chart generation
+- structured, validated output
 
-This keeps the statistical pipeline deterministic while still taking advantage of Claude's reasoning capabilities.
-
----
-
-## Example
-
-```bash
-/forecast revenue.csv --horizon 30
-```
-
-Example output:
-
-```text
-FORECAST ANALYSIS
-
-Target
-Revenue
-
-Frequency
-Daily
-
-Forecast horizon
-30 days
-
-Historical observations
-1,004
-
-Pattern
-Positive trend with strong weekly seasonality
-
-Selected model
-AutoETS
-
-Backtesting sMAPE
-6.2%
-
-Why this model?
-AutoETS achieved the lowest rolling cross-validation
-error among the tested models.
-
-Forecast
-$782,000 expected revenue over the next 30 days
-
-Prediction interval
-$711,000 – $851,000
-
-Risk
-Forecast uncertainty increases toward the end of
-the forecast horizon.
-```
+Statistical computation is deterministic: the same input gives the same output.
 
 ---
 
 ## Model selection
 
-`/forecast` doesn't ask Claude which forecasting model "looks best."
+`/forecast` doesn't ask Claude which model "looks best." Candidates are evaluated on historical data they haven't seen:
 
-Candidate models are evaluated against historical data using rolling backtests.
+| Model | Why it's there |
+|---|---|
+| **Naive** | Baseline: "tomorrow = today". Optimal for a random walk. |
+| **SeasonalNaive** | Baseline: "same as one season ago". Run when a seasonal period is found. |
+| **HistoricAverage** | Baseline: the right answer for noise around a constant. |
+| **AutoETS** | Exponential smoothing; strong general default for trend and seasonality. |
+| **AutoTheta** | Robust and cheap; good on short series. |
+| **AutoARIMA** | Captures autocorrelation structure ETS cannot. |
 
-Initial models are planned to include:
+**The rule:** every model is scored on pooled **MASE** across rolling backtest windows. A complex model wins only if it beats the best baseline by at least **5%**; otherwise the baseline wins. Ties go to the simpler model. Nothing but the backtest numbers can change the outcome.
 
-- **Naive**
-- **Seasonal Naive**
-- **AutoETS**
-- **AutoARIMA**
+Complexity does not equal accuracy. If AutoARIMA loses to SeasonalNaive, SeasonalNaive wins.
 
-A simple baseline is always included.
+### Why MASE, and why a margin?
 
-If a baseline beats a more sophisticated model, **the baseline wins**.
+- **MASE** is scale-free, stays defined when values are zero (sMAPE does not), and reads directly against a baseline. MAE, RMSE and sMAPE are reported alongside it.
+- **The 5% margin** exists because three to five short backtest windows are noisy. On series with nothing to learn (white noise and random walks) a complex model "wins" by chance 72% of the time with no margin, versus 9% with it.
 
-Model complexity does not equal forecast accuracy.
+An honest note on the margin: on a 260-run synthetic benchmark scored on *held-out* data (`benchmarks/tune_margin.py`), margins from 0% to 10% were statistically indistinguishable in forecast accuracy, while always picking the baseline gave roughly 40% more held-out error. So the margin is not there to improve accuracy; it keeps the tool from claiming it found structure that is really noise, and keeps the explanation honest.
 
 ---
 
 ## Backtesting
 
-Forecasting models should be evaluated on their ability to predict observations they haven't seen.
-
-`/forecast` uses rolling-origin time-series cross-validation.
+Forecasting models are judged on their ability to predict observations they haven't seen. `/forecast` uses rolling-origin time-series cross-validation:
 
 ```text
 Time ───────────────────────────────────────────▶
 
-Fold 1
+Window 1
 [──────── TRAIN ────────][ TEST ]
 
-Fold 2
+Window 2
 [─────────── TRAIN ─────────][ TEST ]
 
-Fold 3
+Window 3
 [────────────── TRAIN ──────────][ TEST ]
 ```
 
-Candidate models are compared using forecast-error metrics such as:
-
-- **MAE** — Mean Absolute Error
-- **RMSE** — Root Mean Squared Error
-- **sMAPE** — Symmetric Mean Absolute Percentage Error
-
-Model selection is deterministic and based on backtesting performance rather than LLM judgment.
+- 3 to 5 windows, each as long as the forecast horizon, packed against the end of the series so the most recent behaviour is always tested.
+- If history is too short to test the full horizon, the test horizon is shortened with a warning; below a floor the run refuses and tells you the longest horizon your history can support.
 
 ---
 
-## Data validation
+## Statistical integrity
 
-Before forecasting, `/forecast` inspects the dataset for issues that could affect forecast quality.
+`/forecast` is designed around a few principles, and each is enforced by tests.
 
-This includes checking for:
+- **Backtest everything.** Models earn their place on unseen data.
+- **Always compare against a baseline.** A complicated model isn't automatically better.
+- **Don't hide uncertainty.** Every forecast has 80% and 95% prediction intervals. If a model's own intervals contained far fewer than 80% of actuals in the backtest, they are widened (never narrowed) and the result says so.
+- **Don't force forecasts.** Constant series, too little history, irregular sampling, too much missing data, or a horizon the history can't validate are *refused*, with a reason and a way forward.
+- **Say when the evidence is weak.** 33 catalogued warnings — poor backtest, unstable accuracy, recent degradation, wide intervals, short history, intermittent demand, and more — each with a plain-language explanation. A test fails if any warning is emitted but uncatalogued, or catalogued but never triggered.
+- **Don't confuse correlation with causation.** Claude describes patterns; it does not invent causes.
+- **Don't let the LLM do the math.** Claude quotes the engine's numbers exactly. A test checks that every number in the engine's text summary appears in `result.json`.
 
-- missing observations
-- missing timestamps
-- duplicate timestamps
-- irregular frequencies
-- invalid values
-- insufficient history
-- constant series
-- potential outliers
-- possible seasonality
-- trend characteristics
+Some behaviours worth knowing about, all measured on data with known structure:
 
-If the data isn't suitable for reliable forecasting, `/forecast` can say so instead of forcing a prediction.
+| Series | What `/forecast` does |
+|---|---|
+| Trend + seasonality | A complex model wins by a wide margin; no warnings. |
+| White noise | A baseline wins; one informational note. |
+| Random walk | Naive wins; flagged as having little predictive skill. |
+| A level shift just before the end | Flagged for recent degradation, unstable accuracy and wide intervals. |
+| 70% zero demand | Baselines only, with an intermittent-demand warning. |
+| Missing timestamps | The calendar is restored (otherwise the weekly pattern silently shifts); gaps are filled and reported. |
 
 ---
 
@@ -238,255 +254,162 @@ For example:
 date | store | product | units_sold | inventory | price
 ```
 
-could represent several different forecasting problems.
-
-Claude may identify possibilities such as:
+could mean total units, units by store, units by product, or store × product demand. When the data doesn't settle it, `/forecast` asks:
 
 ```text
-Total units sold
-Units sold by store
-Units sold by product
-Store × product demand
+The data has several series (by store, product). Which one should be forecast?
+  * Total across everything (sum)   (--agg sum)
+  * One store                       (--where store=<value>)
+  * One product                     (--where product=<value>)
 ```
 
-When there is no clear interpretation, `/forecast` asks instead of silently choosing one.
-
----
-
-## Usage
-
-Basic forecast:
-
-```bash
-/forecast sales.csv
-```
-
-Specify a forecast horizon:
-
-```bash
-/forecast sales.csv --horizon 30
-```
-
-Specify a target:
-
-```bash
-/forecast revenue.csv --target revenue
-```
-
-Grouped forecasting is planned for a later release:
-
-```bash
-/forecast demand.csv --target units_sold --group product
-```
-
-The interface is intentionally designed around intelligent defaults rather than dozens of required options.
+It never silently chooses. The same applies to several equally plausible target columns, several date columns, ambiguous `03/04/2024` dates, and conflicting duplicate timestamps.
 
 ---
 
 ## Outputs
 
-A `/forecast` run is designed to produce artifacts such as:
+A run writes to `./forecast-output/<file name>/`:
 
 ```text
-forecast-results/
-├── forecast.csv
-├── forecast.png
-├── metrics.json
-├── profile.json
-└── report.md
+forecast-output/sales/
+├── result.json     everything, validated: input, profile, backtest, selection,
+│                   forecast, intervals, warnings, run metadata
+├── forecast.csv    series, ds, forecast, lo_80, hi_80, lo_95, hi_95, model
+├── backtest.csv    one row per (model, window, step): the audit trail behind every metric
+├── profile.json    the dataset profile on its own
+└── forecast.png    history, forecast start, forecast, 80% and 95% intervals
 ```
 
-### `forecast.csv`
+JSON schemas for the contracts are in [`schemas/`](schemas). If the chart can't be drawn, the forecast and every other file are still written.
 
-Machine-readable forecast results.
+---
 
-```text
-timestamp
-forecast
-lower_bound
-upper_bound
-model
+## Standalone forecasting engine
+
+The engine works without Claude. From a clone of this repo:
+
+```bash
+bin/forecast sales.csv --horizon 30
 ```
 
-### `metrics.json`
+or install it:
 
-Backtesting performance and model comparison results.
+```bash
+uv tool install .
+forecast sales.csv --horizon 30
+```
 
-### `profile.json`
+`forecast profile sales.csv` prints the dataset profile as JSON without forecasting.
 
-Structured information about the detected time series and data-quality checks.
+| Exit code | Meaning |
+|---|---|
+| 0 | Forecast produced |
+| 2 | Usage error |
+| 3 | `needs_input`: the data supports several readings |
+| 4 | `refused`: forecasting would be inappropriate, or the request is invalid |
 
-### `forecast.png`
-
-Historical observations, forecast values, and prediction intervals.
-
-### `report.md`
-
-Human-readable forecast analysis.
-
-Exact output schemas may change while `/forecast` is under development.
+Add `--json` to `run` to print the full result as JSON.
 
 ---
 
 ## Architecture
 
 ```text
-                  /forecast sales.csv
-                          │
-                          ▼
-                 ┌─────────────────┐
-                 │     Claude      │
-                 │  Analyst Layer  │
-                 └────────┬────────┘
-                          │
-                          ▼
-                  Dataset Profiler
-                          │
-                          ▼
-                     Validation
-                          │
-                          ▼
-                 Time-Series Engine
-                          │
-              ┌───────────┼───────────┐
-              ▼           ▼           ▼
-            Naive      AutoETS    AutoARIMA
-              │           │           │
-              └───────────┼───────────┘
-                          ▼
-                     Backtesting
-                          │
-                          ▼
-                   Model Selection
-                          │
-                          ▼
-                       Forecast
-                          │
-              ┌───────────┼───────────┐
-              ▼           ▼           ▼
-         forecast.csv   chart    metrics.json
-                          │
-                          ▼
-                        Claude
-                          │
-                          ▼
-                  Plain-English Report
+                    /forecast:forecast sales.csv
+                                │
+                                ▼
+                    ┌───────────────────────┐
+                    │  Claude (the skill)   │  asks when ambiguous, explains results
+                    └───────────┬───────────┘
+                                │  bin/forecast run …   (exit 0 / 3 / 4)
+                                ▼
+ ┌───────────────────────── Python engine ──────────────────────────┐
+ │  loading ─▶ profile ─▶ backtest ─▶ selection ─▶ forecast          │
+ │  (detect,   (trend,    (rolling    (MASE +      (refit, intervals,│
+ │  regularize) seasonality, windows,  5% margin,   calibration,     │
+ │             outliers)   6 models)   baseline wins) clipping)      │
+ │                              │                                    │
+ │                  diagnostics: warnings & refusals                 │
+ └──────────────────────────────┬────────────────────────────────────┘
+                                ▼
+          result.json · forecast.csv · backtest.csv · forecast.png
+```
+
+```text
+.claude-plugin/        plugin and marketplace manifests
+skills/forecast/       SKILL.md protocol + references (interpretation, model selection)
+bin/forecast           launcher (runs the engine through uv)
+src/forecast/          the engine
+  loading.py  profile.py  backtest.py  models.py  metrics.py  selection.py
+  intervals.py  diagnostics.py  pipeline.py  outputs.py  plot.py  schema.py  cli.py
+schemas/               exported JSON Schemas for every contract
+examples/              five synthetic datasets (+ generator)
+evals/                 live skill evaluation (calls Claude; run by hand)
+benchmarks/            how the selection margin was chosen
+tests/                 590+ tests, including known-truth synthetic series
 ```
 
 ---
 
-## Standalone forecasting engine
-
-The statistical engine is being designed to work independently of Claude Code.
-
-The eventual CLI will resemble:
+## Testing
 
 ```bash
-forecast sales.csv --horizon 30
+uv run pytest          # everything (~2 minutes)
+uv run pytest -m "not slow"   # skip the model-fitting tests
 ```
 
-or:
+Because this software produces statistical results, the tests check behaviour, not just that it runs. Seeded synthetic series with known structure (trend, seasonality, noise, random walks, level shifts, zero-heavy demand, missing data) verify that, for example, a seasonal baseline wins on clean seasonal data, a baseline wins on noise, constant series are refused, and prediction intervals cover roughly what they claim.
 
-```bash
-python -m forecast sales.csv --horizon 30
-```
+The skill itself is tested too: structure tests (every warning and refusal code has plain-language guidance; the references match the engine's constants) and a live harness, `evals/run_skill_evals.py`, that drives real Claude sessions and checks that the raw data is never read, ambiguity is asked rather than guessed, and every number in the answer comes from `result.json`.
 
-Claude Code is therefore an intelligent interface to the forecasting engine — not the engine performing the calculations.
+---
+
+## Example datasets
+
+Synthetic and seeded; no external data. Regenerate with `python examples/make_examples.py`.
+
+| File | Situation |
+|---|---|
+| `retail_sales.csv` | Daily sales: weekend peaks, growth, promotion spikes. A complex model wins. |
+| `saas_revenue.csv` | Monthly revenue with steady growth, 60 months. Few backtest windows; intervals get widened. |
+| `website_traffic.csv` | Wandering level, weak weekly pattern, viral spikes. A baseline wins, with warnings. |
+| `inventory_demand.csv` | Slow-moving item, ~70% zero days. Baselines only. |
+| `multi_store_sales.csv` | Stores × products. `/forecast` asks which series. |
 
 ---
 
 ## Tech stack
 
-### Agent layer
+- **Agent layer:** Claude Code plugin and skill
+- **Forecasting:** [StatsForecast](https://github.com/Nixtla/statsforecast), pandas, NumPy, SciPy, statsmodels
+- **Contracts:** pydantic
+- **Visualization:** Matplotlib
+- **Testing / tooling:** pytest, ruff, uv, GitHub Actions
 
-- Claude Code
-- Claude Code Skills
-
-### Data & forecasting
-
-- Python
-- pandas
-- StatsForecast
-
-### Statistics
-
-- NumPy
-- SciPy and other statistical utilities where appropriate
-
-### Visualization
-
-- Matplotlib
-
-### Testing
-
-- pytest
-
-Dependencies may change as development progresses.
-
----
-
-## Statistical integrity
-
-`/forecast` is designed around a few core principles.
-
-### Backtest everything
-
-Models should demonstrate predictive performance against historical unseen data.
-
-### Always compare against a baseline
-
-A more complicated model isn't automatically a better model.
-
-### Don't hide uncertainty
-
-Forecasts should include prediction intervals where statistically appropriate.
-
-### Don't force forecasts
-
-Sometimes the correct answer is that there isn't enough reliable data.
-
-### Don't confuse correlation with causation
-
-Claude may describe patterns in the data but should not invent causal explanations.
-
-### Don't let the LLM do the math
-
-Statistical computation belongs in deterministic code.
+Everything runs locally. No accounts, no hosted backend, no paid API.
 
 ---
 
 ## Status
 
-> **Early development**
+**v0.1.0 — first release.**
 
-`/forecast` is currently under active development.
+- [x] Claude Code `/forecast` skill
+- [x] CSV ingestion, date / target / frequency detection
+- [x] Data-quality validation and profiling
+- [x] Naive, SeasonalNaive and HistoricAverage baselines
+- [x] AutoETS, AutoTheta, AutoARIMA
+- [x] Rolling-origin backtesting
+- [x] MAE / RMSE / sMAPE / MASE evaluation
+- [x] Deterministic model selection
+- [x] Prediction intervals with backtest-based widening
+- [x] Forecast chart, `forecast.csv`, `result.json`
+- [x] Plain-English analysis
+- [x] Standalone Python CLI
+- [x] Automated tests and synthetic example datasets
 
-The API, command options, output schemas, models, and installation process may change before the first stable release.
-
-### V1
-
-- [ ] Claude Code `/forecast` skill
-- [ ] CSV ingestion
-- [ ] automatic date-column detection
-- [ ] automatic target detection
-- [ ] frequency inference
-- [ ] data-quality validation
-- [ ] Naive baseline
-- [ ] Seasonal Naive baseline
-- [ ] AutoETS
-- [ ] AutoARIMA
-- [ ] rolling-origin backtesting
-- [ ] MAE / RMSE / sMAPE evaluation
-- [ ] deterministic model selection
-- [ ] prediction intervals
-- [ ] forecast visualization
-- [ ] `forecast.csv`
-- [ ] `metrics.json`
-- [ ] plain-English analysis
-- [ ] standalone Python CLI
-- [ ] automated tests
-- [ ] synthetic example datasets
-- [ ] Claude Code installation documentation
+Known limits of V1: one series per run; one seasonal period (the shortest significant one); no holidays, promotions or external regressors; no intermittent-demand models (zero-heavy data gets baselines only); no interval for the *sum* of a forecast (per-step errors are correlated); results are only as good as the history is representative.
 
 ---
 
@@ -495,20 +418,16 @@ The API, command options, output schemas, models, and installation process may c
 Future versions may explore:
 
 - grouped and multiple time series
-- hierarchical forecasting
-- intermittent-demand forecasting
-- changepoint detection
-- anomaly detection
-- holiday and event effects
-- external regressors
-- forecast reconciliation
-- Excel and Parquet support
-- SQL and database sources
+- hierarchical forecasting and reconciliation
+- intermittent-demand models
+- multiple seasonality
+- changepoint and anomaly detection
+- holiday and event effects, external regressors
+- Excel, Parquet and SQL sources
 - batch forecasting
-- additional statistical models
-- ML forecasting models
-- interactive visualizations
-- natural-language questions about forecast results
+- additional statistical and ML models
+- interactive charts
+- natural-language questions about results
 
 The focus for V1 is intentionally smaller:
 
@@ -516,27 +435,9 @@ The focus for V1 is intentionally smaller:
 
 ---
 
-## Example datasets
-
-The repository will include synthetic datasets for testing and demonstration:
-
-```text
-examples/
-├── retail_sales.csv
-├── saas_revenue.csv
-├── website_traffic.csv
-└── inventory_demand.csv
-```
-
-These datasets will demonstrate patterns including trend, seasonality, missing observations, noise, and intermittent demand.
-
----
-
 ## Contributing
 
-`/forecast` is early in development and contributions are welcome.
-
-Issues, bug reports, forecasting edge cases, model suggestions, documentation improvements, and pull requests are all appreciated.
+`/forecast` is early and contributions are welcome: issues, bug reports, forecasting edge cases, model suggestions, documentation, and pull requests.
 
 When proposing a new forecasting model, the question shouldn't simply be:
 
@@ -546,6 +447,8 @@ It should be:
 
 > **"Does this improve forecasting performance or support a use case the existing models cannot handle?"**
 
+Every model in the registry states why it exists; a new one should too, and should show held-out evidence (see `benchmarks/`).
+
 ---
 
 ## Documentation
@@ -553,6 +456,8 @@ It should be:
 <a href="https://forecast-skill.vercel.app">
   <img src="https://img.shields.io/badge/Website%20%26%20Documentation-Visit-000000?style=for-the-badge" alt="Website & Documentation">
 </a>
+
+Design decisions, measurements and trade-offs are recorded in [`docs/decisions.md`](docs/decisions.md); the original plan is [`plan.md`](plan.md).
 
 ---
 

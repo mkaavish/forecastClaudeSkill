@@ -197,7 +197,7 @@ TRIGGERS = {
         model("Naive", 1.0), model("AutoETS", 0.4, reason="adjusted")
     ),
     "BASELINE_WON": lambda t: backtest_codes(model("Naive", 1.0), model("AutoETS", 1.4)),
-    "POOR_BACKTEST": lambda t: backtest_codes(model("Naive", 1.6), model("AutoETS", 1.2)),
+    "POOR_BACKTEST": lambda t: backtest_codes(model("Naive", 1.0), model("AutoETS", 1.3)),
     "UNSTABLE_ACROSS_WINDOWS": lambda t: backtest_codes(
         model("Naive", 2.0), model("AutoETS", 0.5, window_mae=[0.2, 0.3, 3.0, 0.25, 0.3])
     ),

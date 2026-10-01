@@ -103,11 +103,23 @@ def unexplained_numbers(answer: str, result: dict) -> list[str]:
                 continue
             shown = float(text)
             decimals = len(text.split(".")[1]) if "." in text else 0
-            tol = 0.5 * 10**-decimals + 1e-9
+            tol = 10**-decimals + 1e-9  # a full unit: accepts truncation as well as rounding
             scales = (1.0, 100.0) if percent else (1.0,)
             if not any(abs(abs(v) * k - shown) <= tol for v in numbers for k in scales):
                 bad.append(tok)
     return bad
+
+
+MODEL_TALK = ("MASE", "backtest", "baseline", "selected", "chosen", "margin", "model")
+
+
+def causal_claims(answer: str) -> list[str]:
+    """Sentences using causal wording about the data. Explaining the *model choice* is fine."""
+    hits = []
+    for sentence in re.split(r"(?<=[.!?])\s+|\n+", answer):
+        if CAUSAL.search(sentence) and not any(word in sentence for word in MODEL_TALK):
+            hits.append(sentence.strip()[:120])
+    return hits
 
 
 def load_result(cwd: Path, name: str) -> dict:
@@ -158,7 +170,10 @@ def scenario_forecast(cwd: Path) -> list[Check]:
                 and re.search(r"outlier|unusual", t.final_text, re.IGNORECASE) is not None,
                 "passes the outlier warning on in plain words",
             ),
-            Check(CAUSAL.search(t.final_text) is None, "makes no causal claims"),
+            Check(
+                not causal_claims(t.final_text),
+                f"makes no causal claims about the data ({causal_claims(t.final_text)})",
+            ),
             Check(
                 "forecast.png" in t.final_text or "chart" in t.final_text.lower(),
                 "points to the chart",

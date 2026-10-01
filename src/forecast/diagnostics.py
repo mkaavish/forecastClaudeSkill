@@ -40,7 +40,7 @@ WARNING_CODES: dict[str, str] = {
     "MODEL_FAILED": "A model failed during the backtest and was excluded.",
     "MODEL_ADJUSTED": "The selected model was run with an adjusted configuration.",
     "BASELINE_WON": "A baseline model was selected over the complex models.",
-    "POOR_BACKTEST": "The selected model's error exceeds a one-step in-sample seasonal-naive error.",
+    "POOR_BACKTEST": "The selected model barely improves on simply repeating the last observation.",
     "UNSTABLE_ACROSS_WINDOWS": "The selected model's accuracy varies a lot between backtest windows.",
     "RECENT_DEGRADATION": "The latest backtest window was much worse than earlier ones.",
     "LOW_COVERAGE": "The selected model's 80% interval contained far fewer than 80% of actuals.",
@@ -55,7 +55,7 @@ WARNING_CODES: dict[str, str] = {
 
 SHORT_HISTORY_OBS = 50
 SHORT_HISTORY_CYCLES = 3
-POOR_MASE = 1.0
+POOR_SKILL = 0.10  # the winner must beat Naive's backtest error by at least this much
 LOW_COVERAGE_80 = 0.65  # nominal 0.80; allows for sampling noise over a few correlated windows
 UNSTABLE_CV = 0.5  # std / mean of the winner's per-window MAE
 UNSTABLE_WIN_FRACTION = (
@@ -133,15 +133,19 @@ def backtest_notices(
             )
         )
 
-    if selection.metric == "mase" and metrics.mase >= POOR_MASE:
+    skill = selection.improvement_over_naive
+    if skill is not None and skill < POOR_SKILL:
         out.append(
             Notice(
                 code="POOR_BACKTEST",
                 severity="warn",
-                message=f"Typical backtest error (MASE {metrics.mase:.2f}) is larger than the "
-                "one-step in-sample error of a seasonal-naive forecast. Expect forecasts to be "
-                "imprecise, especially at long horizons.",
-                details={"mase": round(metrics.mase, 4)},
+                message=(
+                    "In the backtest the selected model was "
+                    + (f"only {skill:.0%} better than" if skill > 0 else "no better than")
+                    + " simply repeating the last observation (Naive), so it adds little predictive "
+                    "skill. Expect forecasts to be imprecise, especially at long horizons."
+                ),
+                details={"improvement_over_naive": round(skill, 4)},
             )
         )
 

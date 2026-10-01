@@ -1137,6 +1137,17 @@
           ],
           "title": "Improvement Over Baseline"
         },
+        "improvement_over_naive": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Improvement Over Naive"
+        },
         "metric": {
           "enum": [
             "mase",
@@ -1194,6 +1205,7 @@
         "best_baseline",
         "best_complex",
         "improvement_over_baseline",
+        "improvement_over_naive",
         "ranking",
         "explanation"
       ],

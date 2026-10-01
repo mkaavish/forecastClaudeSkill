@@ -90,7 +90,7 @@ A random walk has nothing to forecast, yet complex models are "promoted" 30% of 
 | Code | Fires when |
 |---|---|
 | SHORT_HISTORY | n < 50, or n < 3 seasonal cycles |
-| POOR_BACKTEST | winner MASE >= 1 (error above a one-step in-sample seasonal-naive error). Long horizons legitimately exceed 1; random walks always do, which is the point. |
+| POOR_BACKTEST | *(redefined in Phase 9, see below)* originally: winner MASE >= 1. |
 | UNSTABLE_ACROSS_WINDOWS | winner's per-window MAE std/mean >= 0.5, or a complex winner beats the baseline in < half the windows |
 | RECENT_DEGRADATION | last window's MAE >= 1.5x the mean of the earlier ones |
 | LOW_COVERAGE | nominal 80% interval covers < 65% of backtest actuals |
@@ -143,8 +143,47 @@ Run design:
 | 29 | A local `claude plugin marketplace add <path>` copies the whole working tree (630 MB here, almost all `web/node_modules`, which is untracked). A GitHub install clones committed files only. | None needed for GitHub users; note for the polish phase. |
 
 **Verification.**
-- `tests/test_skill.py` (structural, offline): frontmatter fields, engine always called by plugin path, every exit code and CLI flag present, every one of the 31 warning codes and 12 refusal codes has plain-language guidance, the selection reference matches the engine's constants (margin, window counts, calibration threshold, model names), manifests consistent, `claude plugin validate` passes.
+- `tests/test_skill.py` (structural, offline): frontmatter fields, engine always called by plugin path, every exit code and CLI flag present, every one of the 33 warning codes and 12 refusal codes has plain-language guidance, the selection reference matches the engine's constants (margin, window counts, calibration threshold, model names), manifests consistent, `claude plugin validate` passes.
 - `evals/run_skill_evals.py` (live, costs model calls, not in CI): five scenarios, 19 checks, all pass on the final skill: engine called by plugin path, raw CSV never read, every number in the answer found in `result.json`, no causal wording, ambiguity asked and not guessed, natural-language request mapped to `--agg sum --horizon 14`, refusal explained without retrying, maximum horizon offered. Run twice, passing both times; model behaviour is not deterministic, so treat it as a regression check, not a proof.
 - Installing from a local marketplace into an isolated config and running the *installed* launcher from the plugin cache works end to end.
 
 **Not verified:** installing from the GitHub URL (needs the pushed commits).
+
+
+## Phase 9 decisions (release polish)
+
+### The 5% margin, re-tested on held-out data ([benchmarks/tune_margin.py](../benchmarks/tune_margin.py))
+
+Phase 5 chose the margin from *backtest* improvement alone (20 seeds, 6 series types), which cannot say whether the rule helps on data the procedure has not seen. This pass refits the best baseline and the best complex model on the first n points of 260 synthetic series (13 types: noise, random walks, AR(1), weak/strong trend and seasonality, level shift, damped growth, seasonal random walk, short variants; 20 seeds each) and scores both on the **next 14 points**. For any margin the rule picks one of the two, so one pass prices every candidate. Excess held-out MAE over the better of the two (lower is better):
+
+| margin | promoted to complex | null series | weak signal | strong signal | all |
+|---|---|---|---|---|---|
+| 0% | 88% | 5.6% | 3.8% | 3.4% | 4.21% |
+| 3% | 66% | 7.0% | 3.5% | 3.2% | 4.47% |
+| **5%** | **59%** | 6.5% | 4.2% | 2.4% | **4.33%** |
+| 7.5% | 53% | 5.6% | 4.3% | 2.4% | 4.12% |
+| 10% | 47% | 6.2% | 5.5% | 3.9% | 5.26% |
+| 25% | 31% | 5.8% | 10.6% | 6.8% | 7.97% |
+
+Paired bootstrap against the 5% margin (95% CI of the difference in excess error): 3% +0.14% [-0.37, +0.77]; 7.5% -0.21% [-0.89, +0.35]; 10% +0.92% [-0.22, +2.27]; no margin -0.13% [-1.45, +0.83]; always complex -0.85% [-2.56, +0.64]; **always baseline +40.7% [+31.2, +51.1]**.
+
+**Conclusions, stated plainly:**
+- Every margin from 0% to 10% is statistically indistinguishable on forecast accuracy; the data cannot rank 3% vs 5% vs 7.5%. 25% is clearly too strict (weak-signal series lose 10.6%).
+- Complex models matter: never using them costs ~40% more held-out error.
+- **The margin does not improve accuracy** (always-complex was nominally 0.85 points better, inside the noise). Its value is honesty: on series with nothing to learn (white noise, random walks) a complex model "won" 72% of the time with no margin versus 9% at 5%, and when it won there it did **12.5% worse** on held-out data.
+- **The 5% value is kept** (no evidence to move it; 7.5% is nominally best but within noise) and the justification in `selection.py` and the README now says this instead of implying an accuracy gain.
+
+### POOR_BACKTEST redefined
+
+The Phase 5 rule (winner MASE >= 1) fired on the softened SaaS example (MASE 1.84, AutoETS beating Naive by 78%): multi-step forecasts of any trending series score above 1 against a one-step yardstick, so the warning was miscalibrated. It now fires when the winner beats **Naive** by less than **10%** (`selection.improvement_over_naive`, new): "barely better than repeating the last value". Behaviour (8 seeds each): trend + seasonality never; random walks 8/8; level shift just before the end 8/8; white noise 1/8; SaaS and retail examples not flagged; website traffic (Naive wins) flagged. The interpretation reference no longer treats MASE > 1 as a warning sign.
+
+### Release
+
+- **SaaS example softened** to 1.5% monthly growth (was 2.8%): AutoETS wins by a wide margin, no poor-backtest warning, intervals still widened (native 80% coverage 0.50), which keeps the calibration path demonstrated.
+- **README rewritten** to describe what exists (the design-phase README described planned behaviour: sMAPE selection, `metrics.json`, `report.md`); real example output and chart added.
+- **CI** (`.github/workflows/ci.yml`): Python 3.10 and 3.12; ruff check and format check; the full pytest suite; schemas regenerated and diffed. Live skill evals are not in CI (they cost usage); run them by hand before a release.
+- **Version 0.1.0** in `pyproject.toml`, `plugin.json` and `__version__`; `CHANGELOG.md` added.
+
+### Live skill evals: what Phase 9 found
+
+Re-running `evals/run_skill_evals.py` after the changes above exposed two more slips in the *answers* (not the engine): Claude derived numbers the engine never printed (e.g. "52" weeks from the date range) and re-rounded one (15,641 vs the printed 15,642), and in one of four runs used causal wording. The skill gained a "check your own answer" section covering exactly these (derived numbers, causal language, and speculation outside the labelled interpretations section). The causal check in the evals was also too broad: it flagged "chosen **because** it had the lowest MASE", which explains the *model choice* (fine) rather than the data, so it now ignores sentences about model selection, and number matching accepts truncation as well as rounding. After the changes the five scenarios passed in the final full run except one run of `ambiguous` that did not register as a question; it passed 3/3 on rerun. Model behaviour is not deterministic: treat the live evals as a regression signal to run by hand before releases, not a gate.

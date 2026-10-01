@@ -26,8 +26,9 @@ domain knowledge would confirm or reject it. Correlation, seasonality or a trend
 - **MASE** compares the model's backtest error with the error of simply repeating the pattern from
   one season ago (or the last value, if there is no season) on the training data. Below 1: better
   than that yardstick; above 1: worse. Multi-step forecasts are naturally harder than one-step
-  ones, so values somewhat above 1 are normal at long horizons; a random walk always scores well
-  above 1.
+  ones, so values above 1 are normal at long horizons and are *not* a warning sign by themselves
+  (a good forecast of a steadily growing series can score 1.8). What matters is the improvement
+  over simply repeating the last value (`selection.improvement_over_naive`).
 - **sMAPE** is a percentage error. It is unstable near zero, which is why selection does not use it.
 - **Coverage** of the 80% interval should be near 80%. Far below means the model was overconfident.
 
@@ -80,7 +81,7 @@ Mention every `warn` warning. Mention `info` notices only when they matter to th
 | `MODEL_FAILED` | "<model> failed during testing and was excluded: <reason>. The others were unaffected." |
 | `MODEL_ADJUSTED` | (info) "<model> ran with a reduced setting (<reason>)." |
 | `BASELINE_WON` | (info) "No complex model clearly beat the simple baseline. That is informative: the data do not reward sophistication." |
-| `POOR_BACKTEST` | "The model's typical error in testing was larger than a simple one-step yardstick. Treat the forecast as rough." |
+| `POOR_BACKTEST` | "In testing, the selected model was barely better than (or no better than) simply repeating the last observation, so it adds little skill. Treat the forecast as rough." Use the percentage in the message; do not recompute it. |
 | `UNSTABLE_ACROSS_WINDOWS` | "The model's accuracy swung a lot between test periods (or it rarely beat the baseline period by period), so how well it will do next is uncertain." |
 | `RECENT_DEGRADATION` | "The most recent test period was much worse than earlier ones. That can mean the series' behaviour recently changed, which the model has not learned. Whether it did, and why, is for the user to judge." |
 | `LOW_COVERAGE` | "The model's 80% intervals contained far fewer than 80% of the actual values in testing: they understate the uncertainty." |

@@ -149,3 +149,19 @@ def test_selection_ignores_everything_but_the_scores():
     )
     b = pick(model("Naive", 1.0), model("AutoETS", 0.5))
     assert a.winner == b.winner == "AutoETS" and a.ranking == b.ranking
+
+
+def test_improvement_over_naive_is_reported():
+    sel = pick(model("Naive", 1.0), model("SeasonalNaive", 0.8), model("AutoETS", 0.5))
+    assert sel.improvement_over_naive == pytest.approx(0.5)
+    assert (
+        pick(model("Naive", 1.0), model("AutoETS", 1.2)).improvement_over_naive == 0.0
+    )  # Naive itself won
+
+
+def test_improvement_over_naive_is_none_without_a_usable_naive():
+    assert (
+        pick(model("Naive", status="failed"), model("HistoricAverage", 1.0)).improvement_over_naive
+        is None
+    )
+    assert pick(model("Naive", 0.0), model("HistoricAverage", 1.0)).improvement_over_naive is None

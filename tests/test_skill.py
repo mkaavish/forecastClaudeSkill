@@ -63,6 +63,16 @@ def test_skill_forbids_decorating_the_command_which_would_defeat_the_allowed_too
     assert "nothing added" in SKILL and "`2>&1`" in SKILL and "`; echo $?`" in SKILL
 
 
+def test_skill_has_a_self_check_covering_the_slips_seen_in_live_runs():
+    assert "check your own answer" in SKILL.lower()
+    for slip in (
+        "Do\n  not derive new ones",
+        "No causal language about the data",
+        "Speculation lives in one place",
+    ):
+        assert slip in SKILL
+
+
 def test_skill_reads_results_with_the_read_tool_not_shell_scripts():
     assert "**with the Read\ntool, not with shell scripts**" in SKILL
     assert re.search(r"allowed-tools:.*\bRead\b", SKILL)

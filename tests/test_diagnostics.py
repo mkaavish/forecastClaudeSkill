@@ -60,14 +60,31 @@ def test_baseline_won_only_when_a_complex_model_actually_ran(profile):
     assert "BASELINE_WON" not in codes(profile, *HEALTHY)
 
 
-def test_poor_backtest_when_winner_mase_reaches_one(profile):
-    assert "POOR_BACKTEST" in codes(profile, model("Naive", 1.6), model("AutoETS", 1.2))
-    assert "POOR_BACKTEST" not in codes(profile, model("Naive", 1.6), model("AutoETS", 0.99))
+def test_poor_backtest_when_the_winner_barely_beats_repeating_the_last_value(profile):
+    # winner is Naive itself: zero skill over Naive
+    assert "POOR_BACKTEST" in codes(profile, model("Naive", 1.0), model("AutoETS", 1.3))
+    # winner beats Naive by only 6% (< 10%)
+    assert "POOR_BACKTEST" in codes(profile, model("Naive", 1.0), model("SeasonalNaive", 0.94))
 
 
-def test_poor_backtest_is_skipped_when_mase_is_undefined(profile):
-    s = summary(model("Naive", None), model("AutoETS", None), scale=None)
-    assert "POOR_BACKTEST" not in {n.code for n in backtest_notices(s, select_model(s), profile)}
+def test_no_poor_backtest_when_the_winner_has_real_skill_even_if_mase_exceeds_one(profile):
+    # multi-step forecasts of a trending series routinely score MASE > 1; what matters is skill over Naive
+    out = notices(profile, model("Naive", 4.0), model("AutoETS", 1.84))
+    assert "POOR_BACKTEST" not in {n.code for n in out}
+
+
+def test_poor_backtest_message_quantifies_the_skill(profile):
+    out = {n.code: n for n in notices(profile, model("Naive", 1.0), model("SeasonalNaive", 0.94))}
+    assert "only 6% better" in out["POOR_BACKTEST"].message
+    assert out["POOR_BACKTEST"].details["improvement_over_naive"] == 0.06
+    out = {n.code: n for n in notices(profile, model("Naive", 1.0), model("AutoETS", 1.3))}
+    assert "no better than" in out["POOR_BACKTEST"].message
+
+
+def test_poor_backtest_is_skipped_when_naive_is_unavailable(profile):
+    assert "POOR_BACKTEST" not in codes(
+        profile, model("Naive", status="failed"), model("HistoricAverage", 1.0)
+    )
 
 
 def test_unstable_when_window_errors_vary_wildly(profile):
