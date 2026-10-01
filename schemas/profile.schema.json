@@ -1,0 +1,621 @@
+{
+  "$defs": {
+    "ColumnCandidate": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reasons",
+          "type": "array"
+        },
+        "score": {
+          "title": "Score",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "score"
+      ],
+      "title": "ColumnCandidate",
+      "type": "object"
+    },
+    "Intermittency": {
+      "additionalProperties": false,
+      "properties": {
+        "adi": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Adi"
+        },
+        "applicable": {
+          "title": "Applicable",
+          "type": "boolean"
+        },
+        "cv2": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Cv2"
+        },
+        "demand_class": {
+          "anyOf": [
+            {
+              "enum": [
+                "smooth",
+                "erratic",
+                "intermittent",
+                "lumpy"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Demand Class"
+        },
+        "zero_heavy": {
+          "title": "Zero Heavy",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "applicable",
+        "adi",
+        "cv2",
+        "demand_class",
+        "zero_heavy"
+      ],
+      "title": "Intermittency",
+      "type": "object"
+    },
+    "LoadReport": {
+      "additionalProperties": false,
+      "description": "What loading did to the raw file; the ``input`` section of later reports.",
+      "properties": {
+        "agg": {
+          "anyOf": [
+            {
+              "enum": [
+                "sum",
+                "mean"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Agg"
+        },
+        "date_column": {
+          "title": "Date Column",
+          "type": "string"
+        },
+        "dimension_columns": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Dimension Columns",
+          "type": "array"
+        },
+        "end": {
+          "title": "End",
+          "type": "string"
+        },
+        "file": {
+          "title": "File",
+          "type": "string"
+        },
+        "fill_policy": {
+          "enum": [
+            "interpolate",
+            "zero"
+          ],
+          "title": "Fill Policy",
+          "type": "string"
+        },
+        "frequency": {
+          "title": "Frequency",
+          "type": "string"
+        },
+        "frequency_name": {
+          "title": "Frequency Name",
+          "type": "string"
+        },
+        "longest_gap": {
+          "title": "Longest Gap",
+          "type": "integer"
+        },
+        "n_imputed": {
+          "title": "N Imputed",
+          "type": "integer"
+        },
+        "n_missing_timestamps": {
+          "title": "N Missing Timestamps",
+          "type": "integer"
+        },
+        "n_missing_values": {
+          "title": "N Missing Values",
+          "type": "integer"
+        },
+        "n_obs": {
+          "title": "N Obs",
+          "type": "integer"
+        },
+        "n_rows_raw": {
+          "title": "N Rows Raw",
+          "type": "integer"
+        },
+        "notices": {
+          "items": {
+            "$ref": "#/$defs/Notice"
+          },
+          "title": "Notices",
+          "type": "array"
+        },
+        "schema_version": {
+          "default": "1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "start": {
+          "title": "Start",
+          "type": "string"
+        },
+        "target_candidates": {
+          "items": {
+            "$ref": "#/$defs/ColumnCandidate"
+          },
+          "title": "Target Candidates",
+          "type": "array"
+        },
+        "target_column": {
+          "title": "Target Column",
+          "type": "string"
+        },
+        "where": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Where",
+          "type": "object"
+        }
+      },
+      "required": [
+        "file",
+        "date_column",
+        "target_column",
+        "frequency",
+        "frequency_name",
+        "n_rows_raw",
+        "n_obs",
+        "start",
+        "end",
+        "n_missing_timestamps",
+        "n_missing_values",
+        "n_imputed",
+        "longest_gap",
+        "fill_policy"
+      ],
+      "title": "LoadReport",
+      "type": "object"
+    },
+    "Notice": {
+      "additionalProperties": false,
+      "description": "A non-fatal observation about the data or the run (the ``warnings`` list).",
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "details": {
+          "additionalProperties": true,
+          "title": "Details",
+          "type": "object"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "info",
+            "warn"
+          ],
+          "title": "Severity",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "severity",
+        "message"
+      ],
+      "title": "Notice",
+      "type": "object"
+    },
+    "Outlier": {
+      "additionalProperties": false,
+      "properties": {
+        "ds": {
+          "title": "Ds",
+          "type": "string"
+        },
+        "robust_z": {
+          "title": "Robust Z",
+          "type": "number"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "ds",
+        "value",
+        "robust_z"
+      ],
+      "title": "Outlier",
+      "type": "object"
+    },
+    "OutlierSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "fraction": {
+          "title": "Fraction",
+          "type": "number"
+        },
+        "method": {
+          "title": "Method",
+          "type": "string"
+        },
+        "n_outliers": {
+          "title": "N Outliers",
+          "type": "integer"
+        },
+        "top": {
+          "items": {
+            "$ref": "#/$defs/Outlier"
+          },
+          "title": "Top",
+          "type": "array"
+        }
+      },
+      "required": [
+        "method",
+        "n_outliers",
+        "fraction",
+        "top"
+      ],
+      "title": "OutlierSummary",
+      "type": "object"
+    },
+    "Seasonality": {
+      "additionalProperties": false,
+      "properties": {
+        "candidates": {
+          "items": {
+            "$ref": "#/$defs/SeasonalityCandidate"
+          },
+          "title": "Candidates",
+          "type": "array"
+        },
+        "multiple": {
+          "title": "Multiple",
+          "type": "boolean"
+        },
+        "season_length": {
+          "title": "Season Length",
+          "type": "integer"
+        },
+        "trend_strength": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Trend Strength"
+        }
+      },
+      "required": [
+        "candidates",
+        "season_length",
+        "multiple",
+        "trend_strength"
+      ],
+      "title": "Seasonality",
+      "type": "object"
+    },
+    "SeasonalityCandidate": {
+      "additionalProperties": false,
+      "properties": {
+        "cycles": {
+          "title": "Cycles",
+          "type": "number"
+        },
+        "detected": {
+          "title": "Detected",
+          "type": "boolean"
+        },
+        "independent": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Independent"
+        },
+        "note": {
+          "default": "",
+          "title": "Note",
+          "type": "string"
+        },
+        "p_value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "P Value"
+        },
+        "period": {
+          "title": "Period",
+          "type": "integer"
+        },
+        "strength": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Strength"
+        },
+        "tested": {
+          "title": "Tested",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "period",
+        "cycles",
+        "tested",
+        "strength",
+        "p_value",
+        "detected"
+      ],
+      "title": "SeasonalityCandidate",
+      "type": "object"
+    },
+    "Stats": {
+      "additionalProperties": false,
+      "properties": {
+        "cv": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Cv"
+        },
+        "max": {
+          "title": "Max",
+          "type": "number"
+        },
+        "mean": {
+          "title": "Mean",
+          "type": "number"
+        },
+        "median": {
+          "title": "Median",
+          "type": "number"
+        },
+        "min": {
+          "title": "Min",
+          "type": "number"
+        },
+        "n": {
+          "title": "N",
+          "type": "integer"
+        },
+        "n_negative": {
+          "title": "N Negative",
+          "type": "integer"
+        },
+        "q25": {
+          "title": "Q25",
+          "type": "number"
+        },
+        "q75": {
+          "title": "Q75",
+          "type": "number"
+        },
+        "std": {
+          "title": "Std",
+          "type": "number"
+        },
+        "zero_fraction": {
+          "title": "Zero Fraction",
+          "type": "number"
+        }
+      },
+      "required": [
+        "n",
+        "mean",
+        "std",
+        "min",
+        "q25",
+        "median",
+        "q75",
+        "max",
+        "zero_fraction",
+        "n_negative",
+        "cv"
+      ],
+      "title": "Stats",
+      "type": "object"
+    },
+    "Trend": {
+      "additionalProperties": false,
+      "properties": {
+        "direction": {
+          "enum": [
+            "positive",
+            "negative",
+            "none",
+            "insufficient_data"
+          ],
+          "title": "Direction",
+          "type": "string"
+        },
+        "drift_p_value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Drift P Value"
+        },
+        "p_value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "P Value"
+        },
+        "relative_change": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Relative Change"
+        },
+        "slope_per_period": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Slope Per Period"
+        }
+      },
+      "required": [
+        "direction",
+        "slope_per_period",
+        "relative_change",
+        "p_value",
+        "drift_p_value"
+      ],
+      "title": "Trend",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "constant": {
+      "title": "Constant",
+      "type": "boolean"
+    },
+    "input": {
+      "$ref": "#/$defs/LoadReport"
+    },
+    "intermittency": {
+      "$ref": "#/$defs/Intermittency"
+    },
+    "near_constant": {
+      "title": "Near Constant",
+      "type": "boolean"
+    },
+    "outliers": {
+      "$ref": "#/$defs/OutlierSummary"
+    },
+    "schema_version": {
+      "default": "1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "seasonality": {
+      "$ref": "#/$defs/Seasonality"
+    },
+    "stats": {
+      "$ref": "#/$defs/Stats"
+    },
+    "status": {
+      "const": "ok",
+      "default": "ok",
+      "title": "Status",
+      "type": "string"
+    },
+    "trend": {
+      "$ref": "#/$defs/Trend"
+    },
+    "warnings": {
+      "items": {
+        "$ref": "#/$defs/Notice"
+      },
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "input",
+    "stats",
+    "constant",
+    "near_constant",
+    "intermittency",
+    "outliers",
+    "trend",
+    "seasonality"
+  ],
+  "title": "ProfileReport",
+  "type": "object"
+}

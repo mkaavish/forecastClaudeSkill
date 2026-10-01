@@ -89,6 +89,85 @@ class LoadReport(_Model):
     notices: list[Notice] = Field(default_factory=list)
 
 
+class Stats(_Model):
+    n: int
+    mean: float
+    std: float
+    min: float
+    q25: float
+    median: float
+    q75: float
+    max: float
+    zero_fraction: float
+    n_negative: int
+    cv: float | None  # std / |mean|; None when the mean is 0
+
+
+class Intermittency(_Model):
+    applicable: bool  # only defined for non-negative series
+    adi: float | None  # average demand interval: periods per non-zero observation
+    cv2: float | None  # squared coefficient of variation of non-zero values
+    demand_class: Literal["smooth", "erratic", "intermittent", "lumpy"] | None
+    zero_heavy: bool
+
+
+class Outlier(_Model):
+    ds: str
+    value: float
+    robust_z: float
+
+
+class OutlierSummary(_Model):
+    method: str
+    n_outliers: int
+    fraction: float
+    top: list[Outlier]  # largest |z| first; flagged only, never removed
+
+
+class Trend(_Model):
+    direction: Literal["positive", "negative", "none", "insufficient_data"]
+    slope_per_period: float | None  # Theil-Sen
+    relative_change: float | None  # slope * (n - 1) / |median|
+    p_value: float | None  # Kendall tau test of the (seasonally adjusted) series against time
+    drift_p_value: (
+        float | None
+    )  # t-test that first differences have non-zero mean; guards against random walks
+
+
+class SeasonalityCandidate(_Model):
+    period: int
+    cycles: float  # complete cycles available
+    tested: bool
+    strength: float | None  # Hyndman STL seasonal strength, 0..1 (effect size)
+    p_value: float | None  # F-test of detrended values across seasonal positions
+    detected: bool
+    independent: bool | None = (
+        None  # for non-primary detected periods: still significant after removing the primary
+    )
+    note: str = ""
+
+
+class Seasonality(_Model):
+    candidates: list[SeasonalityCandidate]
+    season_length: int  # strongest detected period, or 1
+    multiple: bool  # a second period is significant after removing the primary one
+    trend_strength: float | None
+
+
+class ProfileReport(_Model):
+    schema_version: str = SCHEMA_VERSION
+    status: Literal["ok"] = "ok"
+    input: LoadReport
+    stats: Stats
+    constant: bool
+    near_constant: bool
+    intermittency: Intermittency
+    outliers: OutlierSummary
+    trend: Trend
+    seasonality: Seasonality
+    warnings: list[Notice] = Field(default_factory=list)
+
+
 class NeedsInputReport(_Model):
     schema_version: str = SCHEMA_VERSION
     status: Literal["needs_input"] = "needs_input"
@@ -129,6 +208,7 @@ class NeedsInputError(Exception):
 
 CONTRACTS: dict[str, type[BaseModel]] = {
     "load_report": LoadReport,
+    "profile": ProfileReport,
     "needs_input": NeedsInputReport,
     "refusal": RefusalReport,
 }

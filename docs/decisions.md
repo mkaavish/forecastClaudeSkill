@@ -27,3 +27,16 @@ Plugin `forecast`, marketplace `forecast-skill`, distribution `claude-forecast`,
 ## Still unverified
 - Marketplace install from `mkaavish/forecastClaudeSkill` on GitHub (needs the push).
 - Behaviour on newer CLI versions (docs cite v2.1.265+; installed is 2.1.119). Root-skill naming and `bin/` PATH may differ there; our design does not depend on either.
+
+## Phase 2 findings (profiler)
+
+| # | Finding | Consequence |
+|---|---|---|
+| 14 | STL seasonal strength alone cannot separate noise from weak real seasonality: white noise reaches 0.28, weak real seasonality (amplitude 3, noise 5) 0.34. | A period counts as detected only if an F-test across seasonal positions of the detrended series has p < 0.001 **and** strength ≥ 0.10. Measured over 500 null runs (noise, random walk, trend, level shift, zero-heavy): 0 false positives. Weak real seasonality: 98% detected. Strength is reported as an effect size, p-value as the evidence. |
+| 15 | A longer period (168) always "explains" a shorter one (24) it contains, so picking the strongest period mislabels hourly data with a daily pattern. | Primary period = shortest detected (the one a model can use). Longer detected periods are then re-tested after removing the primary's seasonal component; `multiple` is true only if one is still significant. |
+| 16 | Kendall's tau trend test flagged **30 of 40 pure random walks** as trending (it assumes independent errors). | A trend is reported only if Kendall **and** a drift t-test on first differences both give p < 0.01, with a ≥ 5% relative change, judged on the seasonally adjusted series. Now ≤ 3/40 on random walks; trend + seasonality still detected on 8/8 seeds. Known limit: a real but weak trend in noisy data can be reported as "none"; the wording is "no statistically distinguishable trend", not "no trend". |
+| 17 | Robust STL residuals flagged ~7% of clean Gaussian data as outliers (robust fitting shrinks inlier residuals, so the MAD collapses). | Outlier residuals use non-robust STL (seasonal) or a rolling median (non-seasonal): ~0.1% false positives, 100% recall on 10σ spikes. Outliers are flagged, never removed. |
+| 18 | A numeric-looking monotonic integer column ("ID by pattern") is indistinguishable from a real series. | Identifier columns are recognised by name only (Phase 1). |
+
+New CLI flag since Phase 1: `--date-order dmy|mdy` (resolves ambiguous dates).
+`forecast profile` prints JSON to stdout with a `status` of `ok`, `needs_input` or `refused`; exit codes 0 / 3 / 4 (2 usage, 1 internal).
