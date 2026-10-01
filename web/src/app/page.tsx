@@ -20,8 +20,8 @@ const PIPELINE: { step: string; owner: Owner }[] = [
 
 const OWNER_STYLE: Record<Owner, string> = {
   you: "text-subtle",
-  python: "text-accent",
-  claude: "text-claude",
+  python: "text-foreground",
+  claude: "text-accent",
 };
 
 const CLAUDE = [
@@ -115,7 +115,7 @@ export default function Home() {
           </div>
           <div className="grid gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-2">
             <div className="bg-background p-6">
-              <h3 className="font-mono text-sm text-claude">Claude</h3>
+              <h3 className="font-mono text-sm text-accent">Claude</h3>
               <ul className="mt-4 space-y-3 text-sm leading-6 text-muted">
                 {CLAUDE.map((t) => (
                   <li key={t}>{t}</li>
@@ -123,7 +123,7 @@ export default function Home() {
               </ul>
             </div>
             <div className="bg-background p-6">
-              <h3 className="font-mono text-sm text-accent">Python</h3>
+              <h3 className="font-mono text-sm text-foreground">Python</h3>
               <ul className="mt-4 space-y-3 text-sm leading-6 text-muted">
                 {PYTHON.map((t) => (
                   <li key={t}>{t}</li>

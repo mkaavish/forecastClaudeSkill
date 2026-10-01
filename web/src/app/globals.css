@@ -7,9 +7,8 @@
   --subtle: #71717a;
   --border: #232328;
   --surface: #0f0f12;
-  --accent: #5fd38d;
+  --accent: #d97757;
   --warn: #e5b567;
-  --claude: #d9a07a;
 }
 
 @theme inline {
@@ -21,7 +20,6 @@
   --color-surface: var(--surface);
   --color-accent: var(--accent);
   --color-warn: var(--warn);
-  --color-claude: var(--claude);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
