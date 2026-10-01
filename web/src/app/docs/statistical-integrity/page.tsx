@@ -6,11 +6,14 @@ export const metadata: Metadata = { title: "Statistical integrity — /forecast"
 export default function StatisticalIntegrity() {
   return (
     <>
+      <p>
+        <StatusBadge status="planned" />
+      </p>
       <h1>Statistical integrity</h1>
       <p>
         Plenty of tools will take a CSV and produce a number. These are the rules{" "}
         <code>/forecast</code> is designed around, and what separates it from &ldquo;an AI predicts
-        your spreadsheet.&rdquo; <StatusBadge status="planned" /> They are design commitments for V1;
+        your spreadsheet.&rdquo; These are design commitments for V1;
         the engine that enforces them is still being built.
       </p>
 

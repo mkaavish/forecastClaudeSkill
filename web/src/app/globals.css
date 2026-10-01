@@ -1,14 +1,15 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0a0a0b;
+  --background: #09090b;
   --foreground: #ededee;
-  --muted: #9a9aa2;
-  --subtle: #6b6b73;
-  --border: #232327;
-  --surface: #101012;
+  --muted: #a1a1aa;
+  --subtle: #71717a;
+  --border: #232328;
+  --surface: #0f0f12;
   --accent: #5fd38d;
   --warn: #e5b567;
+  --claude: #d9a07a;
 }
 
 @theme inline {
@@ -20,6 +21,7 @@
   --color-surface: var(--surface);
   --color-accent: var(--accent);
   --color-warn: var(--warn);
+  --color-claude: var(--claude);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -54,15 +56,21 @@ body {
 .doc > * + * {
   margin-top: 1rem;
 }
+.doc h1 + p {
+  font-size: 1.0625rem;
+  color: var(--muted);
+}
 .doc h1 {
-  font-size: 2rem;
+  font-size: 2.25rem;
   line-height: 1.2;
   font-weight: 600;
   letter-spacing: -0.02em;
   color: var(--foreground);
 }
 .doc h2 {
-  margin-top: 2.5rem;
+  margin-top: 3rem;
+  padding-top: 1.75rem;
+  border-top: 1px solid var(--border);
   font-size: 1.25rem;
   font-weight: 600;
   letter-spacing: -0.01em;
@@ -127,4 +135,15 @@ body {
 }
 .table-wrap {
   overflow-x: auto;
+}
+
+.eyebrow {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--subtle);
+}
+.num {
+  font-variant-numeric: tabular-nums;
 }

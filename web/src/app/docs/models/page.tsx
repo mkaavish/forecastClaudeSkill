@@ -6,9 +6,12 @@ export const metadata: Metadata = { title: "Models & backtesting — /forecast" 
 export default function Models() {
   return (
     <>
+      <p>
+        <StatusBadge status="planned" />
+      </p>
       <h1>Models &amp; backtesting</h1>
       <p>
-        <StatusBadge status="planned" /> Everything on this page describes V1 as designed. The
+        Everything on this page describes V1 as designed. The
         details, especially the selection thresholds, may change as the engine is built and
         benchmarked.
       </p>

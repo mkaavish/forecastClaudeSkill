@@ -1,4 +1,5 @@
 import { DocsNav } from "@/components/docs-nav";
+import { Pager } from "@/components/pager";
 import { DocsMobileNav } from "@/components/docs-mobile-nav";
 
 export default function DocsLayout({ children }: LayoutProps<"/docs">) {
@@ -11,7 +12,9 @@ export default function DocsLayout({ children }: LayoutProps<"/docs">) {
             <DocsNav />
           </nav>
         </aside>
-        <article className="doc min-w-0 max-w-2xl flex-1 py-10 pb-20">{children}</article>
+        <article className="doc min-w-0 max-w-2xl flex-1 py-10 pb-20">{children}
+          <Pager />
+        </article>
       </div>
     </>
   );

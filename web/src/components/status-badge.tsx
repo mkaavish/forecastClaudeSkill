@@ -7,14 +7,10 @@ const LABELS: Record<Status, string> = {
 };
 
 export function StatusBadge({ status, label }: { status: Status; label?: string }) {
-  const tone =
-    status === "early"
-      ? "border-warn/40 text-warn"
-      : "border-border text-muted";
+  const dot = status === "early" ? "bg-warn" : "bg-subtle";
   return (
-    <span
-      className={`inline-block whitespace-nowrap rounded-full border px-2 py-0.5 align-middle font-mono text-[11px] font-normal leading-4 ${tone}`}
-    >
+    <span className="inline-flex items-center gap-1.5 whitespace-nowrap align-middle font-mono text-[11px] font-normal uppercase leading-4 tracking-wide text-muted">
+      <span aria-hidden className={`size-1.5 rounded-full ${dot}`} />
       {label ?? LABELS[status]}
     </span>
   );
