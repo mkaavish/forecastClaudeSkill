@@ -1,0 +1,195 @@
+{
+  "$defs": {
+    "ColumnCandidate": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reasons",
+          "type": "array"
+        },
+        "score": {
+          "title": "Score",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "score"
+      ],
+      "title": "ColumnCandidate",
+      "type": "object"
+    },
+    "Notice": {
+      "additionalProperties": false,
+      "description": "A non-fatal observation about the data or the run (the ``warnings`` list).",
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "details": {
+          "additionalProperties": true,
+          "title": "Details",
+          "type": "object"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "info",
+            "warn"
+          ],
+          "title": "Severity",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "severity",
+        "message"
+      ],
+      "title": "Notice",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "What loading did to the raw file; the ``input`` section of later reports.",
+  "properties": {
+    "agg": {
+      "anyOf": [
+        {
+          "enum": [
+            "sum",
+            "mean"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Agg"
+    },
+    "date_column": {
+      "title": "Date Column",
+      "type": "string"
+    },
+    "dimension_columns": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Dimension Columns",
+      "type": "array"
+    },
+    "end": {
+      "title": "End",
+      "type": "string"
+    },
+    "file": {
+      "title": "File",
+      "type": "string"
+    },
+    "fill_policy": {
+      "enum": [
+        "interpolate",
+        "zero"
+      ],
+      "title": "Fill Policy",
+      "type": "string"
+    },
+    "frequency": {
+      "title": "Frequency",
+      "type": "string"
+    },
+    "frequency_name": {
+      "title": "Frequency Name",
+      "type": "string"
+    },
+    "longest_gap": {
+      "title": "Longest Gap",
+      "type": "integer"
+    },
+    "n_imputed": {
+      "title": "N Imputed",
+      "type": "integer"
+    },
+    "n_missing_timestamps": {
+      "title": "N Missing Timestamps",
+      "type": "integer"
+    },
+    "n_missing_values": {
+      "title": "N Missing Values",
+      "type": "integer"
+    },
+    "n_obs": {
+      "title": "N Obs",
+      "type": "integer"
+    },
+    "n_rows_raw": {
+      "title": "N Rows Raw",
+      "type": "integer"
+    },
+    "notices": {
+      "items": {
+        "$ref": "#/$defs/Notice"
+      },
+      "title": "Notices",
+      "type": "array"
+    },
+    "schema_version": {
+      "default": "1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "start": {
+      "title": "Start",
+      "type": "string"
+    },
+    "target_candidates": {
+      "items": {
+        "$ref": "#/$defs/ColumnCandidate"
+      },
+      "title": "Target Candidates",
+      "type": "array"
+    },
+    "target_column": {
+      "title": "Target Column",
+      "type": "string"
+    },
+    "where": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Where",
+      "type": "object"
+    }
+  },
+  "required": [
+    "file",
+    "date_column",
+    "target_column",
+    "frequency",
+    "frequency_name",
+    "n_rows_raw",
+    "n_obs",
+    "start",
+    "end",
+    "n_missing_timestamps",
+    "n_missing_values",
+    "n_imputed",
+    "longest_gap",
+    "fill_policy"
+  ],
+  "title": "LoadReport",
+  "type": "object"
+}

@@ -1,0 +1,107 @@
+{
+  "$defs": {
+    "Ambiguity": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "date",
+            "date_format",
+            "target",
+            "series",
+            "duplicates"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "options": {
+          "items": {
+            "$ref": "#/$defs/Option"
+          },
+          "title": "Options",
+          "type": "array"
+        },
+        "question": {
+          "title": "Question",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "question",
+        "options"
+      ],
+      "title": "Ambiguity",
+      "type": "object"
+    },
+    "Option": {
+      "additionalProperties": false,
+      "description": "One way to resolve an ambiguity, expressed as CLI arguments Claude can pass back.",
+      "properties": {
+        "cli_args": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Cli Args",
+          "type": "array"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "values": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Values"
+        }
+      },
+      "required": [
+        "label",
+        "cli_args"
+      ],
+      "title": "Option",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "ambiguities": {
+      "items": {
+        "$ref": "#/$defs/Ambiguity"
+      },
+      "title": "Ambiguities",
+      "type": "array"
+    },
+    "schema_version": {
+      "default": "1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "status": {
+      "const": "needs_input",
+      "default": "needs_input",
+      "title": "Status",
+      "type": "string"
+    }
+  },
+  "required": [
+    "ambiguities"
+  ],
+  "title": "NeedsInputReport",
+  "type": "object"
+}
