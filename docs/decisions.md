@@ -67,3 +67,37 @@ Design choices:
 - MASE uses one constant scale for all windows (seasonal-naive in-sample error on the first window's training data; falls back to everything before the final test block, then to "undefined"). A constant scale never changes the ranking.
 - Metrics are pooled over all backtest points (windows are equal-sized, so pooling equals averaging); per-window MAE/MASE are kept for the stability check in Phase 5.
 - `backtest.csv`: one row per (model, window, step) with `model, window, cutoff, ds, step, y, yhat, lo_80, hi_80, lo_95, hi_95`.
+
+## Phase 5 decisions (selection and warnings)
+
+**Selection rule** ([selection.py](../src/forecast/selection.py)): score = pooled MASE (MAE only if the MASE scale is undefined). The best baseline is the comparison point; a complex model wins only if `complex < baseline * (1 - margin)` (strict), otherwise the baseline wins. Ties in either group go to the simpler model. Listing order cannot matter (tested over all permutations); nothing but the scores influences the outcome (tested).
+
+**Margin raised from 3% to 5%.** The plan allowed tuning "on synthetic data". Measured over 20 seeds per series type, h=14, best complex model vs best baseline:
+
+| Series | complex promoted at 3% | at 5% | at 10% | median improvement |
+|---|---|---|---|---|
+| white noise | 0% | 0% | 0% | 0.0% |
+| random walk | 30% | 15% | 5% | +0.3% |
+| level shift | 85% | 80% | 45% | +9% |
+| weekly seasonality | 100% | 100% | 100% | +29% (min 23%) |
+| trend + seasonality | 100% | 100% | 100% | +71% (min 66%) |
+| linear trend | 100% | 100% | 100% | +95% |
+
+A random walk has nothing to forecast, yet complex models are "promoted" 30% of the time at 3% because 3-5 short windows are noisy. 5% halves that without losing any series that has real signal. 10% would start rejecting legitimate level-shift improvements, so 5% it is. It is one constant (`MARGIN`) to re-tune in the release phase on a wider benchmark.
+
+**Warning thresholds** (all constants in [diagnostics.py](../src/forecast/diagnostics.py)):
+
+| Code | Fires when |
+|---|---|
+| SHORT_HISTORY | n < 50, or n < 3 seasonal cycles |
+| POOR_BACKTEST | winner MASE >= 1 (error above a one-step in-sample seasonal-naive error). Long horizons legitimately exceed 1; random walks always do, which is the point. |
+| UNSTABLE_ACROSS_WINDOWS | winner's per-window MAE std/mean >= 0.5, or a complex winner beats the baseline in < half the windows |
+| RECENT_DEGRADATION | last window's MAE >= 1.5x the mean of the earlier ones |
+| LOW_COVERAGE | nominal 80% interval covers < 65% of backtest actuals |
+| WIDE_INTERVALS | mean 80% interval width >= 3x the history's inter-quartile range |
+| BASELINE_WON | a complex model ran but a baseline won (info) |
+| MODEL_FAILED / MODEL_ADJUSTED | a model failed / the winner ran with a reduced configuration |
+
+Behaviour check (8 seeds per series): trend + seasonality produced **no** warnings; white noise produced only `BASELINE_WON`; every random walk got `POOR_BACKTEST`; a level shift in the last 10 observations triggered `RECENT_DEGRADATION`, `POOR_BACKTEST` and `UNSTABLE_ACROSS_WINDOWS` in 8/8 runs. Cost: `RECENT_DEGRADATION` fired once on a clean weekly series (1/8, an expected false-positive rate for a ratio test on 5 noisy windows).
+
+`WARNING_CODES` is the single catalogue; a test asserts every code is catalogued, emitted somewhere in the source, and has a test that makes it fire.

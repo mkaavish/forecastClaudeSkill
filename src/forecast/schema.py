@@ -29,6 +29,7 @@ RefusalCode = Literal[
     "WHERE_NO_MATCH",
     "HORIZON_TOO_LONG",
     "CONSTANT_SERIES",
+    "NO_VALID_MODEL",
 ]
 
 
@@ -224,6 +225,38 @@ class BacktestSummary(_Model):
     models: list[ModelBacktest]
 
 
+SelectionReason = Literal[
+    "beat_baseline_by_margin",  # a complex model beat the best baseline by at least the margin
+    "baseline_best",  # a complex model ran but did not beat the best baseline
+    "baseline_within_margin",  # a complex model was better, but by less than the margin
+    "only_baselines_ran",  # no complex model was eligible or none succeeded
+    "no_baseline_ran",  # every baseline failed; best remaining model wins
+]
+
+
+class RankedModel(_Model):
+    name: str
+    kind: Literal["baseline", "complex"]
+    score: float
+    rank: int
+
+
+class Selection(_Model):
+    """The deterministic model choice. Claude explains it; it never makes it."""
+
+    schema_version: str = SCHEMA_VERSION
+    winner: str
+    winner_kind: Literal["baseline", "complex"]
+    reason: SelectionReason
+    metric: Literal["mase", "mae"]  # mae only when the MASE scale is undefined
+    required_margin: float  # fraction a complex model must improve on the best baseline
+    best_baseline: str | None
+    best_complex: str | None
+    improvement_over_baseline: float | None  # 1 - complex_score / baseline_score; may be negative
+    ranking: list[RankedModel]  # successful models, best score first
+    explanation: str
+
+
 class NeedsInputReport(_Model):
     schema_version: str = SCHEMA_VERSION
     status: Literal["needs_input"] = "needs_input"
@@ -266,6 +299,7 @@ CONTRACTS: dict[str, type[BaseModel]] = {
     "load_report": LoadReport,
     "profile": ProfileReport,
     "backtest": BacktestSummary,
+    "selection": Selection,
     "needs_input": NeedsInputReport,
     "refusal": RefusalReport,
 }

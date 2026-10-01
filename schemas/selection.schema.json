@@ -1,0 +1,139 @@
+{
+  "$defs": {
+    "RankedModel": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "baseline",
+            "complex"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "rank": {
+          "title": "Rank",
+          "type": "integer"
+        },
+        "score": {
+          "title": "Score",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "kind",
+        "score",
+        "rank"
+      ],
+      "title": "RankedModel",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "The deterministic model choice. Claude explains it; it never makes it.",
+  "properties": {
+    "best_baseline": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Best Baseline"
+    },
+    "best_complex": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Best Complex"
+    },
+    "explanation": {
+      "title": "Explanation",
+      "type": "string"
+    },
+    "improvement_over_baseline": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Improvement Over Baseline"
+    },
+    "metric": {
+      "enum": [
+        "mase",
+        "mae"
+      ],
+      "title": "Metric",
+      "type": "string"
+    },
+    "ranking": {
+      "items": {
+        "$ref": "#/$defs/RankedModel"
+      },
+      "title": "Ranking",
+      "type": "array"
+    },
+    "reason": {
+      "enum": [
+        "beat_baseline_by_margin",
+        "baseline_best",
+        "baseline_within_margin",
+        "only_baselines_ran",
+        "no_baseline_ran"
+      ],
+      "title": "Reason",
+      "type": "string"
+    },
+    "required_margin": {
+      "title": "Required Margin",
+      "type": "number"
+    },
+    "schema_version": {
+      "default": "1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "winner": {
+      "title": "Winner",
+      "type": "string"
+    },
+    "winner_kind": {
+      "enum": [
+        "baseline",
+        "complex"
+      ],
+      "title": "Winner Kind",
+      "type": "string"
+    }
+  },
+  "required": [
+    "winner",
+    "winner_kind",
+    "reason",
+    "metric",
+    "required_margin",
+    "best_baseline",
+    "best_complex",
+    "improvement_over_baseline",
+    "ranking",
+    "explanation"
+  ],
+  "title": "Selection",
+  "type": "object"
+}

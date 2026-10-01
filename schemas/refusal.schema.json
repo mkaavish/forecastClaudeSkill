@@ -13,7 +13,8 @@
         "MISSING_DATA_HIGH",
         "WHERE_NO_MATCH",
         "HORIZON_TOO_LONG",
-        "CONSTANT_SERIES"
+        "CONSTANT_SERIES",
+        "NO_VALID_MODEL"
       ],
       "title": "Code",
       "type": "string"
