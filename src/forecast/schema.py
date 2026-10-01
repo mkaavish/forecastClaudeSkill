@@ -191,6 +191,39 @@ class BacktestPlan(_Model):
     notices: list[Notice] = Field(default_factory=list)
 
 
+class ModelMetrics(_Model):
+    """Pooled over every backtest window (windows are equal-sized, so pooling == averaging)."""
+
+    mae: float
+    rmse: float
+    smape: float  # percent, 0-200 scale
+    mase: float | None  # None when the training history is flat
+    coverage_80: float  # share of actuals inside the nominal 80% interval
+    coverage_95: float
+    mean_width_80: float
+    window_mae: list[float]
+    window_mase: list[float] | None
+
+
+class ModelBacktest(_Model):
+    name: str
+    kind: Literal["baseline", "complex"]
+    status: Literal["ok", "failed", "skipped"]
+    season_length: int  # period the model was given (1 if none)
+    reason: str = ""  # why skipped/failed, or how its configuration was adjusted
+    fit_seconds: float | None = None
+    metrics: ModelMetrics | None = None
+
+
+class BacktestSummary(_Model):
+    schema_version: str = SCHEMA_VERSION
+    plan: BacktestPlan
+    mase_scale: float | None
+    mase_scale_source: Literal["initial_training", "pre_final_window", "undefined"]
+    levels: list[int]
+    models: list[ModelBacktest]
+
+
 class NeedsInputReport(_Model):
     schema_version: str = SCHEMA_VERSION
     status: Literal["needs_input"] = "needs_input"
@@ -232,6 +265,7 @@ class NeedsInputError(Exception):
 CONTRACTS: dict[str, type[BaseModel]] = {
     "load_report": LoadReport,
     "profile": ProfileReport,
+    "backtest": BacktestSummary,
     "needs_input": NeedsInputReport,
     "refusal": RefusalReport,
 }

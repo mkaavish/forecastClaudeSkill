@@ -18,8 +18,12 @@ from typing import Literal
 
 from forecast.schema import ProfileReport
 
-MAX_SEASON_FOR_ETS_ARIMA = (
-    24  # longer periods (168 hourly, 365 daily, 52 weekly) are impractically slow
+# Measured in Phase 4 (3-window backtests): AutoETS needs ~3 s at period 168 and ~12 s at 365;
+# AutoARIMA needs 19 s at period 52, 23 s at 24 and 434 s at 168.
+MAX_SEASON_ETS = 168
+MAX_SEASON_ARIMA = 24
+MAX_SEASONAL_ARIMA_COST = (
+    50_000  # n_obs * season_length; beyond this ARIMA is fitted non-seasonally
 )
 
 
@@ -30,6 +34,7 @@ class ModelSpec:
     simplicity: int  # lower = simpler; the deterministic tie-breaker in selection
     needs_season: bool = False  # only runs when a seasonal period was detected
     max_season_length: int | None = None  # longer periods are modelled as non-seasonal
+    max_seasonal_cost: int | None = None  # cap on n_obs * season_length for seasonal fits
     handles_intermittent: bool = False  # complex models are skipped on zero-heavy data
     why: str = ""
 
@@ -51,7 +56,7 @@ REGISTRY: tuple[ModelSpec, ...] = (
         "AutoETS",
         "complex",
         3,
-        max_season_length=MAX_SEASON_FOR_ETS_ARIMA,
+        max_season_length=MAX_SEASON_ETS,
         why="exponential smoothing with automatic trend/season selection",
     ),
     ModelSpec("AutoTheta", "complex", 4, why="robust theta method, good on short series"),
@@ -59,7 +64,8 @@ REGISTRY: tuple[ModelSpec, ...] = (
         "AutoARIMA",
         "complex",
         5,
-        max_season_length=MAX_SEASON_FOR_ETS_ARIMA,
+        max_season_length=MAX_SEASON_ARIMA,
+        max_seasonal_cost=MAX_SEASONAL_ARIMA_COST,
         why="automatic ARIMA for autocorrelated series",
     ),
 )
@@ -98,6 +104,13 @@ def eligibility(spec: ModelSpec, ctx: SeriesContext) -> Eligibility:
     if spec.max_season_length is not None and season > spec.max_season_length:
         reason = f"period {season} is too long for {spec.name}; fitted without seasonality"
         season = 1
+    elif (
+        spec.max_seasonal_cost is not None
+        and season > 1
+        and ctx.n_obs * season > spec.max_seasonal_cost
+    ):
+        reason = f"seasonal {spec.name} on {ctx.n_obs} points x period {season} is too slow; fitted without seasonality"
+        season = 1
     return Eligibility(True, season, reason)
 
 
@@ -110,3 +123,21 @@ def eligible_models(
         verdict = eligibility(spec, ctx)
         (run if verdict.eligible else skipped).append((spec, verdict))
     return run, skipped
+
+
+def build_model(spec: ModelSpec, season_length: int):
+    """Instantiate the StatsForecast model for ``spec`` (imported lazily: it is a heavy import)."""
+    from statsforecast import models as sf
+
+    builders = {
+        "Naive": lambda: sf.Naive(),
+        "SeasonalNaive": lambda: sf.SeasonalNaive(season_length=season_length),
+        "HistoricAverage": lambda: sf.HistoricAverage(),
+        "AutoETS": lambda: sf.AutoETS(season_length=season_length),
+        "AutoTheta": lambda: sf.AutoTheta(season_length=season_length),
+        "AutoARIMA": lambda: sf.AutoARIMA(season_length=season_length),
+    }
+    try:
+        return builders[spec.name]()
+    except KeyError:
+        raise ValueError(f"no builder for model '{spec.name}'") from None

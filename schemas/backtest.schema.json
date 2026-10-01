@@ -1,0 +1,322 @@
+{
+  "$defs": {
+    "BacktestPlan": {
+      "additionalProperties": false,
+      "properties": {
+        "backtest_horizon": {
+          "title": "Backtest Horizon",
+          "type": "integer"
+        },
+        "horizon": {
+          "title": "Horizon",
+          "type": "integer"
+        },
+        "min_train": {
+          "title": "Min Train",
+          "type": "integer"
+        },
+        "n_windows": {
+          "title": "N Windows",
+          "type": "integer"
+        },
+        "notices": {
+          "items": {
+            "$ref": "#/$defs/Notice"
+          },
+          "title": "Notices",
+          "type": "array"
+        },
+        "season_length": {
+          "title": "Season Length",
+          "type": "integer"
+        },
+        "shortened": {
+          "title": "Shortened",
+          "type": "boolean"
+        },
+        "step": {
+          "title": "Step",
+          "type": "integer"
+        },
+        "windows": {
+          "items": {
+            "$ref": "#/$defs/BacktestWindow"
+          },
+          "title": "Windows",
+          "type": "array"
+        }
+      },
+      "required": [
+        "horizon",
+        "backtest_horizon",
+        "n_windows",
+        "step",
+        "min_train",
+        "season_length",
+        "shortened",
+        "windows"
+      ],
+      "title": "BacktestPlan",
+      "type": "object"
+    },
+    "BacktestWindow": {
+      "additionalProperties": false,
+      "description": "One rolling-origin split in observation-index space (end indices are exclusive).",
+      "properties": {
+        "index": {
+          "title": "Index",
+          "type": "integer"
+        },
+        "test_end": {
+          "title": "Test End",
+          "type": "integer"
+        },
+        "test_start": {
+          "title": "Test Start",
+          "type": "integer"
+        },
+        "train_end": {
+          "title": "Train End",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "index",
+        "train_end",
+        "test_start",
+        "test_end"
+      ],
+      "title": "BacktestWindow",
+      "type": "object"
+    },
+    "ModelBacktest": {
+      "additionalProperties": false,
+      "properties": {
+        "fit_seconds": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fit Seconds"
+        },
+        "kind": {
+          "enum": [
+            "baseline",
+            "complex"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "metrics": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ModelMetrics"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "reason": {
+          "default": "",
+          "title": "Reason",
+          "type": "string"
+        },
+        "season_length": {
+          "title": "Season Length",
+          "type": "integer"
+        },
+        "status": {
+          "enum": [
+            "ok",
+            "failed",
+            "skipped"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "kind",
+        "status",
+        "season_length"
+      ],
+      "title": "ModelBacktest",
+      "type": "object"
+    },
+    "ModelMetrics": {
+      "additionalProperties": false,
+      "description": "Pooled over every backtest window (windows are equal-sized, so pooling == averaging).",
+      "properties": {
+        "coverage_80": {
+          "title": "Coverage 80",
+          "type": "number"
+        },
+        "coverage_95": {
+          "title": "Coverage 95",
+          "type": "number"
+        },
+        "mae": {
+          "title": "Mae",
+          "type": "number"
+        },
+        "mase": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Mase"
+        },
+        "mean_width_80": {
+          "title": "Mean Width 80",
+          "type": "number"
+        },
+        "rmse": {
+          "title": "Rmse",
+          "type": "number"
+        },
+        "smape": {
+          "title": "Smape",
+          "type": "number"
+        },
+        "window_mae": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Window Mae",
+          "type": "array"
+        },
+        "window_mase": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Window Mase"
+        }
+      },
+      "required": [
+        "mae",
+        "rmse",
+        "smape",
+        "mase",
+        "coverage_80",
+        "coverage_95",
+        "mean_width_80",
+        "window_mae",
+        "window_mase"
+      ],
+      "title": "ModelMetrics",
+      "type": "object"
+    },
+    "Notice": {
+      "additionalProperties": false,
+      "description": "A non-fatal observation about the data or the run (the ``warnings`` list).",
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "details": {
+          "additionalProperties": true,
+          "title": "Details",
+          "type": "object"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "info",
+            "warn"
+          ],
+          "title": "Severity",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "severity",
+        "message"
+      ],
+      "title": "Notice",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "levels": {
+      "items": {
+        "type": "integer"
+      },
+      "title": "Levels",
+      "type": "array"
+    },
+    "mase_scale": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Mase Scale"
+    },
+    "mase_scale_source": {
+      "enum": [
+        "initial_training",
+        "pre_final_window",
+        "undefined"
+      ],
+      "title": "Mase Scale Source",
+      "type": "string"
+    },
+    "models": {
+      "items": {
+        "$ref": "#/$defs/ModelBacktest"
+      },
+      "title": "Models",
+      "type": "array"
+    },
+    "plan": {
+      "$ref": "#/$defs/BacktestPlan"
+    },
+    "schema_version": {
+      "default": "1",
+      "title": "Schema Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "plan",
+    "mase_scale",
+    "mase_scale_source",
+    "levels",
+    "models"
+  ],
+  "title": "BacktestSummary",
+  "type": "object"
+}

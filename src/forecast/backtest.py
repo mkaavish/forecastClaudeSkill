@@ -7,14 +7,31 @@ end of the series:
     TRAIN ───────────────── TEST
     TRAIN ───────────────────── TEST
 
-Planning is pure arithmetic over the series length; model fitting lives elsewhere.
+Planning is pure arithmetic over the series length. Execution fits each model in its own
+StatsForecast call so one failing model cannot take the others down.
 """
 
 from __future__ import annotations
 
 import math
+import time
+import warnings
+from dataclasses import dataclass
 
-from forecast.schema import BacktestPlan, BacktestWindow, Notice, RefusedError
+import numpy as np
+import pandas as pd
+
+from forecast import metrics
+from forecast.models import Eligibility, ModelSpec, build_model
+from forecast.schema import (
+    BacktestPlan,
+    BacktestSummary,
+    BacktestWindow,
+    ModelBacktest,
+    ModelMetrics,
+    Notice,
+    RefusedError,
+)
 
 MIN_WINDOWS = 3
 MAX_WINDOWS = 5
@@ -142,4 +159,160 @@ def plan_backtest(n_obs: int, horizon: int, season_length: int = 1) -> BacktestP
         shortened=h_bt < horizon,
         windows=windows,
         notices=notices,
+    )
+
+
+# --------------------------------------------------------------------------- execution
+
+LEVELS = (80, 95)
+FRAME_COLUMNS = [
+    "model",
+    "window",
+    "cutoff",
+    "ds",
+    "step",
+    "y",
+    "yhat",
+    "lo_80",
+    "hi_80",
+    "lo_95",
+    "hi_95",
+]
+
+
+@dataclass
+class BacktestResult:
+    summary: BacktestSummary
+    frame: pd.DataFrame  # long format, one row per (model, window, step); see FRAME_COLUMNS
+
+
+def run_backtest(
+    data: pd.DataFrame,
+    freq: str,
+    plan: BacktestPlan,
+    run: list[tuple[ModelSpec, Eligibility]],
+    skipped: list[tuple[ModelSpec, Eligibility]] = (),
+) -> BacktestResult:
+    """Cross-validate every model in ``run`` over the planned windows.
+
+    ``data`` has columns ``ds`` and ``y`` (regular, no gaps). A model that raises, or returns
+    non-finite forecasts, is recorded as failed and excluded; the others still run.
+    """
+    y = data["y"].to_numpy(dtype=float)
+    ds = pd.DatetimeIndex(data["ds"])
+    expected_cutoffs = [ds[w.train_end - 1] for w in plan.windows]
+    scale, scale_source = _mase_scale(y, plan)
+    sf_input = pd.DataFrame({"unique_id": "series", "ds": ds, "y": y})
+
+    records: list[ModelBacktest] = []
+    frames: list[pd.DataFrame] = []
+    for spec, verdict in run:
+        started = time.perf_counter()
+        try:
+            raw = _cross_validate(sf_input, freq, spec, verdict.season_length, plan)
+        except Exception as exc:  # noqa: BLE001 - any model failure must be isolated
+            records.append(ModelBacktest(
+                name=spec.name, kind=spec.kind, status="failed", season_length=verdict.season_length,
+                reason=f"{type(exc).__name__}: {str(exc)[:200]}",
+                fit_seconds=round(time.perf_counter() - started, 3),
+            ))  # fmt: skip
+            continue
+        elapsed = round(time.perf_counter() - started, 3)
+        frame = _to_frame(
+            raw, spec.name, expected_cutoffs
+        )  # engine invariant: raises if misaligned
+        if not np.isfinite(frame[["yhat", "lo_80", "hi_80", "lo_95", "hi_95"]].to_numpy()).all():
+            records.append(ModelBacktest(
+                name=spec.name, kind=spec.kind, status="failed", season_length=verdict.season_length,
+                reason="non-finite forecasts or intervals", fit_seconds=elapsed,
+            ))  # fmt: skip
+            continue
+        frames.append(frame)
+        records.append(ModelBacktest(
+            name=spec.name, kind=spec.kind, status="ok", season_length=verdict.season_length,
+            reason=verdict.reason, fit_seconds=elapsed, metrics=_score(frame, scale, plan),
+        ))  # fmt: skip
+    for spec, verdict in skipped:
+        records.append(ModelBacktest(name=spec.name, kind=spec.kind, status="skipped",
+                                     season_length=verdict.season_length, reason=verdict.reason))  # fmt: skip
+
+    summary = BacktestSummary(plan=plan, mase_scale=scale, mase_scale_source=scale_source,
+                              levels=list(LEVELS), models=records)  # fmt: skip
+    frame = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame(columns=FRAME_COLUMNS)
+    return BacktestResult(summary=summary, frame=frame)
+
+
+def _cross_validate(
+    sf_input: pd.DataFrame, freq: str, spec: ModelSpec, season_length: int, plan: BacktestPlan
+):
+    from statsforecast import StatsForecast
+
+    model = build_model(spec, season_length)
+    sf = StatsForecast(models=[model], freq=freq, n_jobs=1)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        raw = sf.cross_validation(
+            h=plan.backtest_horizon,
+            df=sf_input,
+            n_windows=plan.n_windows,
+            step_size=plan.step,
+            level=list(LEVELS),
+        )
+    needed = [spec.name] + [f"{spec.name}-{side}-{lv}" for lv in LEVELS for side in ("lo", "hi")]
+    missing = [c for c in needed if c not in raw.columns]
+    if missing:
+        raise ValueError(f"model returned no {', '.join(missing)}")
+    return raw
+
+
+def _to_frame(raw: pd.DataFrame, name: str, expected_cutoffs: list[pd.Timestamp]) -> pd.DataFrame:
+    cutoffs = sorted(raw["cutoff"].unique())
+    if [pd.Timestamp(c) for c in cutoffs] != expected_cutoffs:
+        raise RuntimeError(
+            f"StatsForecast windows {cutoffs} do not match the plan {expected_cutoffs}"
+        )
+    window = raw["cutoff"].map({c: i for i, c in enumerate(cutoffs)})
+    out = pd.DataFrame({
+        "model": name,
+        "window": window.to_numpy(),
+        "cutoff": raw["cutoff"].to_numpy(),
+        "ds": raw["ds"].to_numpy(),
+        "y": raw["y"].to_numpy(dtype=float),
+        "yhat": raw[name].to_numpy(dtype=float),
+        **{f"{side}_{lv}": raw[f"{name}-{side}-{lv}"].to_numpy(dtype=float) for lv in LEVELS for side in ("lo", "hi")},
+    })  # fmt: skip
+    out = out.sort_values(["window", "ds"]).reset_index(drop=True)
+    out["step"] = out.groupby("window").cumcount() + 1
+    return out[FRAME_COLUMNS]
+
+
+def _mase_scale(y: np.ndarray, plan: BacktestPlan):
+    """One constant scale for all windows (it never changes the ranking, only the units).
+
+    Uses the first window's training data so no test observation leaks into it; falls back to
+    everything before the final test block if that stretch is flat.
+    """
+    for end, label in (
+        (plan.windows[0].train_end, "initial_training"),
+        (plan.windows[-1].train_end, "pre_final_window"),
+    ):
+        scale = metrics.mase_scale(y[:end], plan.season_length)
+        if scale is not None:
+            return scale, label
+    return None, "undefined"
+
+
+def _score(frame: pd.DataFrame, scale: float | None, plan: BacktestPlan) -> ModelMetrics:
+    a, f = frame["y"].to_numpy(), frame["yhat"].to_numpy()
+    window_mae = [metrics.mae(g["y"], g["yhat"]) for _, g in frame.groupby("window")]
+    return ModelMetrics(
+        mae=metrics.mae(a, f),
+        rmse=metrics.rmse(a, f),
+        smape=metrics.smape(a, f),
+        mase=metrics.mae(a, f) / scale if scale else None,
+        coverage_80=metrics.coverage(a, frame["lo_80"], frame["hi_80"]),
+        coverage_95=metrics.coverage(a, frame["lo_95"], frame["hi_95"]),
+        mean_width_80=float(np.mean(frame["hi_80"] - frame["lo_80"])),
+        window_mae=window_mae,
+        window_mase=[m / scale for m in window_mae] if scale else None,
     )

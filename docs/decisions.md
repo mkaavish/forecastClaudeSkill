@@ -50,3 +50,20 @@ New CLI flag since Phase 1: `--date-order dmy|mdy` (resolves ambiguous dates).
 - **Default horizon** (when `--horizon` is omitted): D 28, W 13, M 12, Q 4, hourly 24, business-daily 20, yearly 3, capped to what history can fully back-test (with a `HORIZON_DEFAULT_REDUCED` notice).
 - **Model eligibility:** intermittent (>= 30% zeros) -> baselines only; SeasonalNaive only with a detected period; AutoETS and AutoARIMA are fitted without seasonality when the period exceeds 24 (168, 365, 52 are impractically slow there), AutoTheta and SeasonalNaive keep the full period. The cap of 24 is a starting value to benchmark in Phase 4.
 - **Constant series** is refused (`CONSTANT_SERIES`) from the profile, before any model runs.
+
+## Phase 4 findings (model execution)
+
+Benchmarks on synthetic data, StatsForecast 2.1.1, one core, 3-window backtests unless noted.
+
+| # | Finding | Consequence |
+|---|---|---|
+| 19 | AutoTheta, AutoETS and AutoARIMA all ran without error and returned finite forecasts on negative values, on data with zeros, and on 70%-zero demand. | No per-model data-type rules were added. The runtime failure path (below) still guards against it. Zero-heavy data runs baselines only by policy (plan), not because models crash. |
+| 20 | AutoARIMA is the cost driver: ~15 s for a 1004-point daily series (5 windows, h=30), 19 s at period 52, 23 s at period 24 (n=960), **434 s at period 168**. AutoETS: 2.8 s at 168, 12 s at 365. Theta and the baselines take < 1 s. | ETS cap raised 24 -> **168**; ARIMA cap stays **24** and additionally drops seasonality when `n_obs * period > 50 000`. Whole 6-model backtest on 1004 daily points: ~16 s. |
+| 21 | All frequency aliases from the loader (`h`, `D`, `B`, `W-WED`, `MS`, `ME`, `QE-DEC`, `YE-DEC`) work in StatsForecast CV. | No alias translation needed. |
+| 22 | **Native prediction intervals are only calibrated for some models.** Empirical coverage of the nominal 80%/95% interval on trend + seasonality (5 seeds, h=28, 4 windows): AutoETS 0.81/0.95, AutoARIMA 0.81/0.96, AutoTheta 0.92/0.99, Naive 0.97/1.00 (too wide), **SeasonalNaive 0.47/0.94 and HistoricAverage 0.00/0.67 (far too narrow)**. | If a baseline wins selection, its native intervals can badly understate uncertainty. Phase 5 must warn on low backtest coverage; Phase 6 should replace the winner's intervals with empirical ones from the backtest residuals when coverage is off (plan §6 "conformal when data allows"). Coverage is already measured per model (`coverage_80`, `coverage_95`). |
+
+Design choices:
+- Each model is cross-validated in its **own** StatsForecast call, so a model that raises, returns non-finite values or lacks interval columns is recorded as `failed` (with reason) and excluded; the rest still run. Alignment of StatsForecast's windows with the plan is an engine invariant and raises instead of being treated as a model failure.
+- MASE uses one constant scale for all windows (seasonal-naive in-sample error on the first window's training data; falls back to everything before the final test block, then to "undefined"). A constant scale never changes the ranking.
+- Metrics are pooled over all backtest points (windows are equal-sized, so pooling equals averaging); per-window MAE/MASE are kept for the stability check in Phase 5.
+- `backtest.csv`: one row per (model, window, step) with `model, window, cutoff, ds, step, y, yhat, lo_80, hi_80, lo_95, hi_95`.
