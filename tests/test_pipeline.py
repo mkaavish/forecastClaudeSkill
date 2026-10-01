@@ -290,6 +290,7 @@ def test_write_artifacts_creates_a_consistent_run_directory(runs, tmp_path):
     assert sorted(p.name for p in out.iterdir()) == [
         "backtest.csv",
         "forecast.csv",
+        "forecast.png",
         "profile.json",
         "result.json",
     ]

@@ -98,23 +98,6 @@ def _print_needs_input(exc: NeedsInputError) -> None:
             print(f"    * {opt.label}{hint}")
 
 
-def _print_summary(result) -> None:
-    f, sel = result.forecast, result.selection
-    print(f"Forecast of '{result.input.target_column}': {f.horizon} {result.input.frequency_name} periods "
-          f"({f.start[:10]} to {f.end[:10]})")  # fmt: skip
-    print(f"Model: {f.model} - {sel.explanation}")
-    change = (
-        ""
-        if f.change_vs_prior is None
-        else f" ({f.change_vs_prior:+.1%} vs the previous {f.horizon} periods)"
-    )
-    print(f"Total over the horizon: {f.total:,.6g}{change}")
-    for w in result.warnings:
-        if w.severity == "warn":
-            print(f"Warning [{w.code}]: {w.message}")
-    print(f"Files: {result.artifacts.directory}")
-
-
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(_route(list(sys.argv[1:] if argv is None else argv)))
     as_json = args.command == "profile" or args.json
@@ -125,7 +108,7 @@ def main(argv: list[str] | None = None) -> int:
             _emit_json(profile_series(loaded), args.output, "profile.json")
             return EXIT_OK
 
-        from forecast.outputs import write_artifacts
+        from forecast.outputs import text_summary, write_artifacts
         from forecast.pipeline import run_forecast
 
         outcome = run_forecast(args.file, horizon=args.horizon, date=args.date, target=args.target,
@@ -135,7 +118,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.json:
             print(result.model_dump_json(indent=2))
         else:
-            _print_summary(result)
+            print(text_summary(result))
         return EXIT_OK
     except NeedsInputError as exc:
         if as_json:

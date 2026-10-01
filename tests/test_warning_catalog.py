@@ -144,6 +144,17 @@ def _clipped(tmp_path):
     return {n.code for n in _clip_non_negative(frame, True)[1]}
 
 
+def _plot_failed(tmp_path):
+    from unittest import mock
+
+    from forecast.outputs import write_artifacts
+    from forecast.pipeline import run_forecast
+
+    outcome = run_forecast(csv(tmp_path, synthetic.trend_seasonality(200)), horizon=7)
+    with mock.patch("forecast.plot.plot_forecast", side_effect=RuntimeError("no display")):
+        return {w.code for w in write_artifacts(outcome, tmp_path / "run").warnings}
+
+
 TRIGGERS = {
     # loading
     "TARGET_AUTO_SELECTED": lambda t: load_codes(t, daily(units_sold=range(40), price=[9.9] * 40)),
@@ -203,6 +214,8 @@ TRIGGERS = {
     "WINNER_REFIT_FAILED": _refit_failed,
     "INTERVALS_CALIBRATED": _calibrated,
     "FORECAST_CLIPPED": _clipped,
+    # output
+    "PLOT_FAILED": _plot_failed,
 }
 
 

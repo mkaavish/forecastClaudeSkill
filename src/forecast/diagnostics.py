@@ -49,6 +49,8 @@ WARNING_CODES: dict[str, str] = {
     "WINNER_REFIT_FAILED": "The selected model could not be refit on the full history; the next best was used.",
     "INTERVALS_CALIBRATED": "Backtest coverage was far from nominal, so the intervals were rescaled.",
     "FORECAST_CLIPPED": "Negative forecast values were raised to zero because the history is non-negative.",
+    # output
+    "PLOT_FAILED": "The chart could not be drawn; all other result files were written.",
 }
 
 SHORT_HISTORY_OBS = 50

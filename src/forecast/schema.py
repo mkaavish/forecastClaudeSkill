@@ -274,11 +274,22 @@ class IntervalInfo(_Model):
     note: str = ""
 
 
+class PointForecast(_Model):
+    ds: str
+    forecast: float
+    lo_80: float
+    hi_80: float
+    lo_95: float
+    hi_95: float
+
+
 class ForecastSummary(_Model):
     model: str  # model that produced the forecast (the selected one unless its refit failed)
     horizon: int
     start: str
     end: str
+    first: PointForecast  # the first and last forecast periods, with their intervals
+    last: PointForecast
     last_observed: float
     mean: float
     total: float  # sum of point forecasts; only meaningful when the target is a flow (sales, visits...)

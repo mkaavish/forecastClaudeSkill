@@ -98,6 +98,7 @@ def test_run_json_writes_artifacts_and_prints_a_valid_result(run_dir, capsys):
     assert sorted(p.name for p in out.iterdir()) == [
         "backtest.csv",
         "forecast.csv",
+        "forecast.png",
         "profile.json",
         "result.json",
     ]
@@ -108,8 +109,8 @@ def test_bare_file_argument_means_run(run_dir, capsys, tmp_path):
     csv, _ = run_dir
     code = main([str(csv), "--horizon", "7", "--output", str(tmp_path / "o")])
     text = capsys.readouterr().out
-    assert code == EXIT_OK and "Forecast of 'sales': 7 daily periods" in text
-    assert "Total over the horizon:" in text and (tmp_path / "o" / "forecast.csv").exists()
+    assert code == EXIT_OK and "FORECAST ANALYSIS: sales" in text and "7 daily periods" in text
+    assert "Sum of forecasts" in text and (tmp_path / "o" / "forecast.csv").exists()
 
 
 def test_flags_may_precede_the_file(run_dir, capsys, tmp_path):

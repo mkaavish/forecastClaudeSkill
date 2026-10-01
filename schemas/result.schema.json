@@ -239,9 +239,15 @@
           "title": "End",
           "type": "string"
         },
+        "first": {
+          "$ref": "#/$defs/PointForecast"
+        },
         "horizon": {
           "title": "Horizon",
           "type": "integer"
+        },
+        "last": {
+          "$ref": "#/$defs/PointForecast"
         },
         "last_observed": {
           "title": "Last Observed",
@@ -278,6 +284,8 @@
         "horizon",
         "start",
         "end",
+        "first",
+        "last",
         "last_observed",
         "mean",
         "total",
@@ -798,6 +806,45 @@
         "top"
       ],
       "title": "OutlierSummary",
+      "type": "object"
+    },
+    "PointForecast": {
+      "additionalProperties": false,
+      "properties": {
+        "ds": {
+          "title": "Ds",
+          "type": "string"
+        },
+        "forecast": {
+          "title": "Forecast",
+          "type": "number"
+        },
+        "hi_80": {
+          "title": "Hi 80",
+          "type": "number"
+        },
+        "hi_95": {
+          "title": "Hi 95",
+          "type": "number"
+        },
+        "lo_80": {
+          "title": "Lo 80",
+          "type": "number"
+        },
+        "lo_95": {
+          "title": "Lo 95",
+          "type": "number"
+        }
+      },
+      "required": [
+        "ds",
+        "forecast",
+        "lo_80",
+        "hi_80",
+        "lo_95",
+        "hi_95"
+      ],
+      "title": "PointForecast",
       "type": "object"
     },
     "ProfileReport": {

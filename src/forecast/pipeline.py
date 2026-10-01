@@ -29,6 +29,7 @@ from forecast.schema import (
     Artifacts,
     ForecastSummary,
     Notice,
+    PointForecast,
     RefusedError,
     RunMeta,
     RunResult,
@@ -46,6 +47,7 @@ class Outcome:
     result: RunResult
     forecast: pd.DataFrame  # FORECAST_COLUMNS
     backtest: pd.DataFrame  # backtest.csv rows
+    history: pd.DataFrame  # ds, y, imputed: the regularized series the models saw
 
 
 def run_forecast(
@@ -115,7 +117,7 @@ def run_forecast(
         ),
         meta=_meta(time.perf_counter() - started),
     )
-    return Outcome(result=result, forecast=frame, backtest=backtest.frame)
+    return Outcome(result=result, forecast=frame, backtest=backtest.frame, history=loaded.data)
 
 
 def fit_with_fallback(
@@ -216,12 +218,21 @@ def _summarize(
         horizon=horizon,
         start=pd.Timestamp(frame["ds"].iloc[0]).isoformat(),
         end=pd.Timestamp(frame["ds"].iloc[-1]).isoformat(),
+        first=_point(frame.iloc[0]),
+        last=_point(frame.iloc[-1]),
         last_observed=float(data["y"].iloc[-1]),
         mean=float(frame["forecast"].mean()),
         total=total,
         previous_total=previous,
         change_vs_prior=(total / previous - 1) if previous != 0 else None,
         clipped_at_zero=clipped,
+    )
+
+
+def _point(row: pd.Series) -> PointForecast:
+    return PointForecast(
+        ds=pd.Timestamp(row["ds"]).isoformat(),
+        **{c: float(row[c]) for c in ("forecast", "lo_80", "hi_80", "lo_95", "hi_95")},
     )
 
 
