@@ -11,7 +11,9 @@
         "INSUFFICIENT_DATA",
         "IRREGULAR_SAMPLING",
         "MISSING_DATA_HIGH",
-        "WHERE_NO_MATCH"
+        "WHERE_NO_MATCH",
+        "HORIZON_TOO_LONG",
+        "CONSTANT_SERIES"
       ],
       "title": "Code",
       "type": "string"

@@ -40,3 +40,13 @@ Plugin `forecast`, marketplace `forecast-skill`, distribution `claude-forecast`,
 
 New CLI flag since Phase 1: `--date-order dmy|mdy` (resolves ambiguous dates).
 `forecast profile` prints JSON to stdout with a `status` of `ok`, `needs_input` or `refused`; exit codes 0 / 3 / 4 (2 usage, 1 internal).
+
+## Phase 3 decisions (metrics and backtest planning)
+
+- **sMAPE convention:** 200 * mean(|e| / (|a| + |f|)) in percent (0-200 scale); a period with actual and forecast both zero scores 0. `utilsforecast.losses.smape` omits the factor 2 and the percent scale, so the cross-check test compares against `200 *` its value. MAE, RMSE and MASE agree with utilsforecast exactly.
+- **MASE denominator:** mean absolute seasonal-naive error on the training data; undefined (None) for a flat history. Selection (Phase 5) must handle None explicitly, not silently.
+- **Plan §6 vs §2.4 reconciled:** §6 said "refuse if h > (n - min_train)/3"; §2.4 said shorten the backtest horizon to a floor. Implemented: use the full horizon when it yields >= 3 windows; otherwise shorten to `(n - min_train)//3` with a `BACKTEST_HORIZON_SHORTENED` warning if that is >= `min(h, max(season_length, ceil(h/2)))`; otherwise refuse (`HORIZON_TOO_LONG`, or `INSUFFICIENT_DATA` when not even a 1-step backtest fits). The refusal message states the maximum horizon history supports.
+- **Windows:** expanding train, non-overlapping test blocks of the backtest horizon packed against the end of the series, 3 to 5 windows, `min_train = max(2 * season_length, 24)`. Matches StatsForecast `cross_validation(h=h_bt, n_windows=k, step_size=h_bt)`.
+- **Default horizon** (when `--horizon` is omitted): D 28, W 13, M 12, Q 4, hourly 24, business-daily 20, yearly 3, capped to what history can fully back-test (with a `HORIZON_DEFAULT_REDUCED` notice).
+- **Model eligibility:** intermittent (>= 30% zeros) -> baselines only; SeasonalNaive only with a detected period; AutoETS and AutoARIMA are fitted without seasonality when the period exceeds 24 (168, 365, 52 are impractically slow there), AutoTheta and SeasonalNaive keep the full period. The cap of 24 is a starting value to benchmark in Phase 4.
+- **Constant series** is refused (`CONSTANT_SERIES`) from the profile, before any model runs.

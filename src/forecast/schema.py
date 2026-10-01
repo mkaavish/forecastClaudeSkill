@@ -27,6 +27,8 @@ RefusalCode = Literal[
     "IRREGULAR_SAMPLING",
     "MISSING_DATA_HIGH",
     "WHERE_NO_MATCH",
+    "HORIZON_TOO_LONG",
+    "CONSTANT_SERIES",
 ]
 
 
@@ -166,6 +168,27 @@ class ProfileReport(_Model):
     trend: Trend
     seasonality: Seasonality
     warnings: list[Notice] = Field(default_factory=list)
+
+
+class BacktestWindow(_Model):
+    """One rolling-origin split in observation-index space (end indices are exclusive)."""
+
+    index: int
+    train_end: int  # train = [0, train_end); expanding window
+    test_start: int  # always == train_end
+    test_end: int
+
+
+class BacktestPlan(_Model):
+    horizon: int  # horizon the user wants forecast
+    backtest_horizon: int  # horizon actually evaluated; < horizon when history is short
+    n_windows: int
+    step: int  # == backtest_horizon: test blocks do not overlap
+    min_train: int
+    season_length: int
+    shortened: bool
+    windows: list[BacktestWindow]
+    notices: list[Notice] = Field(default_factory=list)
 
 
 class NeedsInputReport(_Model):
