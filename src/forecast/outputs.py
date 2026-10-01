@@ -135,6 +135,10 @@ def text_summary(result: RunResult) -> str:
         f"80% interval {_num(f.first.lo_80)} to {_num(f.first.hi_80)} at {f.first.ds[:10]}, "
         f"{_num(f.last.lo_80)} to {_num(f.last.hi_80)} at {f.last.ds[:10]}"
     )
+    if f.interval_width_growth is not None:
+        uncertainty += (
+            f"; the interval is {f.interval_width_growth:.2f}x as wide at the end as at the start"
+        )
     rows.append(("Uncertainty", uncertainty))
     iv = result.intervals
     rows.append(("Intervals", f"{iv.method}; the model's own 80% interval covered {iv.native_coverage_80:.0%} of backtest actuals"

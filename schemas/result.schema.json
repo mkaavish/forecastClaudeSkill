@@ -246,6 +246,17 @@
           "title": "Horizon",
           "type": "integer"
         },
+        "interval_width_growth": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Interval Width Growth"
+        },
         "last": {
           "$ref": "#/$defs/PointForecast"
         },
@@ -286,6 +297,7 @@
         "end",
         "first",
         "last",
+        "interval_width_growth",
         "last_observed",
         "mean",
         "total",

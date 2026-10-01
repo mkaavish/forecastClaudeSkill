@@ -290,6 +290,9 @@ class ForecastSummary(_Model):
     end: str
     first: PointForecast  # the first and last forecast periods, with their intervals
     last: PointForecast
+    interval_width_growth: (
+        float | None
+    )  # 80% interval width at the last period / at the first (None if first is 0)
     last_observed: float
     mean: float
     total: float  # sum of point forecasts; only meaningful when the target is a flow (sales, visits...)

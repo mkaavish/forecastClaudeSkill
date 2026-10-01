@@ -128,6 +128,7 @@ def test_run_needs_input_text_and_json(tmp_path, capsys):
     assert main(["run", str(p)]) == EXIT_NEEDS_INPUT
     text = capsys.readouterr().out
     assert "Which one should be forecast?" in text and "--where store=<value>" in text
+    assert "values: A, B" in text  # the caller needs the valid values to build --where
     assert main(["run", str(p), "--json"]) == EXIT_NEEDS_INPUT
     assert json.loads(capsys.readouterr().out)["status"] == "needs_input"
 

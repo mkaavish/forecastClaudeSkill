@@ -94,8 +94,9 @@ def _print_needs_input(exc: NeedsInputError) -> None:
     for amb in exc.ambiguities:
         print(f"\n- {amb.question}")
         for opt in amb.options:
-            hint = f"  ({' '.join(opt.cli_args)})"
-            print(f"    * {opt.label}{hint}")
+            print(f"    * {opt.label}  ({' '.join(opt.cli_args)})")
+            if opt.values:
+                print(f"        values: {', '.join(opt.values)}")
 
 
 def main(argv: list[str] | None = None) -> int:

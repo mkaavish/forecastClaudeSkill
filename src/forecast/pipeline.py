@@ -211,6 +211,7 @@ def _clip_non_negative(
 def _summarize(
     frame: pd.DataFrame, data: pd.DataFrame, horizon: int, model: str, clipped: bool
 ) -> ForecastSummary:
+    first, last = _point(frame.iloc[0]), _point(frame.iloc[-1])
     total = float(frame["forecast"].sum())
     previous = float(data["y"].iloc[-horizon:].sum())
     return ForecastSummary(
@@ -218,8 +219,9 @@ def _summarize(
         horizon=horizon,
         start=pd.Timestamp(frame["ds"].iloc[0]).isoformat(),
         end=pd.Timestamp(frame["ds"].iloc[-1]).isoformat(),
-        first=_point(frame.iloc[0]),
-        last=_point(frame.iloc[-1]),
+        first=first,
+        last=last,
+        interval_width_growth=_width_growth(first, last),
         last_observed=float(data["y"].iloc[-1]),
         mean=float(frame["forecast"].mean()),
         total=total,
@@ -234,6 +236,11 @@ def _point(row: pd.Series) -> PointForecast:
         ds=pd.Timestamp(row["ds"]).isoformat(),
         **{c: float(row[c]) for c in ("forecast", "lo_80", "hi_80", "lo_95", "hi_95")},
     )
+
+
+def _width_growth(first: PointForecast, last: PointForecast) -> float | None:
+    first_width = first.hi_80 - first.lo_80
+    return (last.hi_80 - last.lo_80) / first_width if first_width > 0 else None
 
 
 def _drop_calibrated_low_coverage(notices: list[Notice], info) -> list[Notice]:

@@ -126,3 +126,25 @@ Run design:
 - **Text summary** ([outputs.py](../src/forecast/outputs.py)): fixed template (Horizon, Pattern, Model, Why, Backtest, Sum of forecasts, Mean per period, Uncertainty, Intervals, Warnings, Files). It is computed from `RunResult` only: a test extracts every number printed and requires it to appear in `result.json` at the precision shown (percent tokens may come from a fraction or from a value already in percent units, e.g. sMAPE). Only `warn` notices are printed; `info` notices stay in `result.json`. A test also forbids causal wording.
 - **`ForecastSummary` gained `first` and `last`** (forecast and 80%/95% bounds at the first and last period), so the interval width at the start and end of the horizon is in `result.json` and the summary never needs `forecast.csv`.
 - The summary says "Sum of forecasts", not "Expected total": whether a sum is meaningful depends on the target being a flow (sales, visits) and not a level (inventory, price). Claude is responsible for that judgement.
+
+## Phase 8 findings (skill and plugin)
+
+**Design.** The skill is a protocol, not a prompt full of statistics: `SKILL.md` (~120 lines) sets five hard rules (no statistics or arithmetic by Claude, never choose the model, never open the data file, no invented causes, never overstate reliability), the run/exit-code protocol, and the answer structure (headline -> what the data show -> what the model forecasts -> risks -> optional labelled interpretations). Two references carry the detail and are read on demand: `interpretation.md` (plain-language translation of **every** warning and refusal code, number handling, things not to say) and `model-selection.md` (the selection rule, models, metrics, limits).
+
+**The skill runs `forecast run` in text mode, not `--json`.** The result JSON is ~14 KB (~4-5k tokens); the text report is ~1.5 KB, is verified against `result.json`, and carries everything needed. Claude reads `result.json` with the Read tool only when it needs detail. For this the `needs_input` text now also lists each option's valid values (`values: North, South`), so Claude can build `--where` without the JSON.
+
+**Findings from running it live (`claude -p`, CLI 2.1.119):**
+
+| # | Finding | Fix |
+|---|---|---|
+| 26 | Claude habitually appended `2>&1; echo "EXIT:$?"` to the engine command. That no longer matches the pre-approved `Bash(${CLAUDE_PLUGIN_ROOT}/bin/forecast *)` pattern, so the user would get a permission prompt (and in non-interactive mode the run stalled). | SKILL.md says to run the command exactly as written with nothing added (and why); tested. After the fix 3/3 runs issued one clean command. |
+| 27 | Claude read `result.json` with `python3 -c`, also unapproved. | The skill says to use the Read tool (allowed) and not shell scripts. |
+| 28 | Claude said the intervals "widened toward the end" when first and last 80% intervals had the same width. The rules forbade arithmetic, so it had no honest way to check. | The engine now supplies `forecast.interval_width_growth` (last width / first width) and prints it in the summary; the skill says to claim widening only if it is clearly above 1. This is the general pattern: if Claude needs a number to make a true statement, the engine provides it. |
+| 29 | A local `claude plugin marketplace add <path>` copies the whole working tree (630 MB here, almost all `web/node_modules`, which is untracked). A GitHub install clones committed files only. | None needed for GitHub users; note for the polish phase. |
+
+**Verification.**
+- `tests/test_skill.py` (structural, offline): frontmatter fields, engine always called by plugin path, every exit code and CLI flag present, every one of the 31 warning codes and 12 refusal codes has plain-language guidance, the selection reference matches the engine's constants (margin, window counts, calibration threshold, model names), manifests consistent, `claude plugin validate` passes.
+- `evals/run_skill_evals.py` (live, costs model calls, not in CI): five scenarios, 19 checks, all pass on the final skill: engine called by plugin path, raw CSV never read, every number in the answer found in `result.json`, no causal wording, ambiguity asked and not guessed, natural-language request mapped to `--agg sum --horizon 14`, refusal explained without retrying, maximum horizon offered. Run twice, passing both times; model behaviour is not deterministic, so treat it as a regression check, not a proof.
+- Installing from a local marketplace into an isolated config and running the *installed* launcher from the plugin cache works end to end.
+
+**Not verified:** installing from the GitHub URL (needs the pushed commits).

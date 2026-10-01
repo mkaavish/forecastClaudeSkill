@@ -130,9 +130,13 @@ def test_horizon_is_exact(tmp_path, horizon):
 
 
 def test_intervals_widen_with_the_horizon(tmp_path):
-    f = run_forecast(csv(tmp_path, synthetic.random_walk(300)), horizon=20).forecast
+    outcome = run_forecast(csv(tmp_path, synthetic.random_walk(300)), horizon=20)
+    f = outcome.forecast
     widths = (f["hi_95"] - f["lo_95"]).to_numpy()
     assert widths[-1] > widths[0]
+    first, last = f.iloc[0], f.iloc[-1]
+    expected = (last["hi_80"] - last["lo_80"]) / (first["hi_80"] - first["lo_80"])
+    assert outcome.result.forecast.interval_width_growth == pytest.approx(expected) and expected > 1
 
 
 # ------------------------------------------------------------ series selection
