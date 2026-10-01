@@ -1,0 +1,10 @@
+{
+  "name": "forecast",
+  "version": "0.0.1",
+  "description": "Autonomous forecasting analyst: statistically backtested forecasts with automatic model selection and plain-English analysis.",
+  "author": { "name": "mkaavish" },
+  "homepage": "https://github.com/mkaavish/forecastClaudeSkill",
+  "repository": "https://github.com/mkaavish/forecastClaudeSkill",
+  "license": "MIT",
+  "keywords": ["forecasting", "time-series", "statsforecast", "backtesting"]
+}

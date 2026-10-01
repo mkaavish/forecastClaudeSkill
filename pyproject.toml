@@ -1,0 +1,35 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "claude-forecast"
+version = "0.0.1"
+description = "Statistically backtested time-series forecasting engine behind the /forecast Claude Code skill."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+dependencies = [
+  "statsforecast>=2.1,<3",
+  "pandas>=2.2",
+  "numpy>=1.26",
+  "matplotlib>=3.8",
+  "pydantic>=2.6",
+]
+
+[project.scripts]
+forecast = "forecast.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8", "ruff>=0.6"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/forecast"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["slow: fits real models (deselect with -m 'not slow')"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]

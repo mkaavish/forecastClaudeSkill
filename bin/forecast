@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Thin launcher: runs the Python engine through uv so users need no manual setup.
+set -euo pipefail
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+if ! command -v uv >/dev/null 2>&1; then
+  echo "forecast: 'uv' is required but was not found on PATH." >&2
+  echo "Install it (https://docs.astral.sh/uv/) e.g. 'pip install uv' or 'brew install uv', then retry." >&2
+  exit 127
+fi
+# Keep the virtualenv outside the plugin directory (which changes on update).
+export UV_PROJECT_ENVIRONMENT="${FORECAST_VENV:-${XDG_CACHE_HOME:-$HOME/.cache}/claude-forecast/venv}"
+exec uv run --quiet --project "$root" python -m forecast "$@"

@@ -1,0 +1,16 @@
+{
+  "name": "forecast-skill",
+  "owner": {
+    "name": "mkaavish"
+  },
+  "plugins": [
+    {
+      "name": "forecast",
+      "source": "./",
+      "description": "Autonomous forecasting analyst: backtested forecasts, automatic model selection, plain-English analysis."
+    }
+  ],
+  "metadata": {
+    "description": "The /forecast plugin for Claude Code"
+  }
+}
