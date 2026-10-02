@@ -7,6 +7,8 @@ A run directory contains:
 * ``forecast.csv``  - ``series, ds, forecast, lo_80, hi_80, lo_95, hi_95, model``
 * ``backtest.csv``  - one row per (model, window, step): the audit trail behind every metric
 * ``forecast.png``  - the chart (omitted, with a ``PLOT_FAILED`` warning, if drawing fails)
+* ``dashboard.html`` - a self-contained interactive dashboard (omitted, with a ``DASHBOARD_FAILED``
+  warning, if it cannot be built)
 
 ``text_summary`` renders a result as plain text using only values found in ``result.json``.
 """
@@ -53,6 +55,27 @@ def write_artifacts(outcome: Outcome, directory: str | Path) -> RunResult:
     except Exception as exc:  # noqa: BLE001 - a chart problem must never lose the forecast
         notice = Notice(code="PLOT_FAILED", severity="warn",
                         message=f"The chart could not be drawn ({type(exc).__name__}: {str(exc)[:120]}).")  # fmt: skip
+        result = result.model_copy(
+            update={"warnings": [*result.warnings, notice], "status": "ok_with_warnings"}
+        )
+    dashboard_name = "dashboard.html"
+    try:
+        from forecast.dashboard import render_dashboard
+
+        # Built from the result as it stands, so the page shows the same warnings the files do.
+        preview = result.model_copy(
+            update={"artifacts": artifacts.model_copy(update={"dashboard": dashboard_name})}
+        )
+        (out / dashboard_name).write_text(
+            render_dashboard(preview, outcome.history, outcome.forecast), encoding="utf-8"
+        )
+        artifacts = artifacts.model_copy(update={"dashboard": dashboard_name})
+    except Exception as exc:  # noqa: BLE001 - the dashboard is an extra; it must never lose the forecast
+        notice = Notice(
+            code="DASHBOARD_FAILED",
+            severity="warn",
+            message=f"The dashboard could not be built ({type(exc).__name__}: {str(exc)[:120]}).",
+        )
         result = result.model_copy(
             update={"warnings": [*result.warnings, notice], "status": "ok_with_warnings"}
         )
@@ -149,4 +172,6 @@ def text_summary(result: RunResult) -> str:
     if shown:
         lines += ["", "Warnings"] + [f"  [{w.code}] {w.message}" for w in shown]
     lines += ["", f"Files: {result.artifacts.directory}"]
+    if result.artifacts.dashboard:
+        lines.append(f"Dashboard: {Path(result.artifacts.directory) / result.artifacts.dashboard}")
     return "\n".join(lines)

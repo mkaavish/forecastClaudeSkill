@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.0
+
+- **Dashboard.** Every run now also writes `dashboard.html`: a self-contained interactive page
+  (headline figures, forecast chart with 80%/95% intervals and hover details, model comparison,
+  per-window error, backtest scores, warnings). The engine builds it from its own results, so it
+  shows only engine numbers. It follows light/dark themes and works at phone width.
+- The Claude skill publishes the dashboard as an Artifact and puts the link at the top of its answer.
+- New warning code `DASHBOARD_FAILED` (a failed dashboard never loses the forecast).
+- Plugin version bumped so existing installs pick the update up.
+
 ## 0.1.0
 
 First release.

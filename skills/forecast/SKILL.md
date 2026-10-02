@@ -1,7 +1,7 @@
 ---
 description: Forecast a time-series CSV (sales, revenue, traffic, demand...). Runs a statistically backtested analysis, picks the model by evidence, and explains the result. Use whenever the user wants a forecast, projection or prediction from a dataset.
 argument-hint: "<file.csv> [--horizon N] [--target COL] [--where COL=VALUE] [--agg sum|mean]"
-allowed-tools: Bash(${CLAUDE_PLUGIN_ROOT}/bin/forecast *), Read
+allowed-tools: Bash(${CLAUDE_PLUGIN_ROOT}/bin/forecast *), Read, Artifact
 ---
 
 # /forecast
@@ -49,8 +49,8 @@ as written, with nothing added**: no `2>&1`, no `; echo $?`, no pipes, no `cd`. 
 stops it matching the pre-approved permission and triggers a prompt; the Bash tool already reports
 a non-zero exit code to you. Use a Bash timeout of
 600000 ms: the first run installs dependencies (about a minute); later runs take seconds.
-It prints a plain-text report and writes `result.json`, `forecast.csv`, `forecast.png`,
-`backtest.csv` and `profile.json` to `./forecast-output/<file name>/` (or `--output`).
+It prints a plain-text report and writes `dashboard.html`, `result.json`, `forecast.csv`,
+`forecast.png`, `backtest.csv` and `profile.json` to `./forecast-output/<file name>/` (or `--output`).
 
 ## Step 3: act on the exit code
 
@@ -74,14 +74,35 @@ likely: the engine already decided what was obvious.
 `references/interpretation.md` (section "Refusals"). If a smaller horizon, a different target or a
 fill policy would fix it, offer that; do not rerun with different settings unprompted.
 
-## Step 4: explain the result
+## Step 4: publish the dashboard
+
+On exit 0 the engine also wrote `dashboard.html` next to the other files: an interactive page
+(headline figures, the forecast chart with its intervals, the model comparison, warnings). The
+engine built it from its own results, so it shows only engine numbers. Show it to the user as an
+Artifact:
+
+1. **Read the whole file with the Read tool** (the Artifact tool requires reading a file you did
+   not write before publishing it; it is about 40-60 KB). Do not edit it, and do not use it to
+   work anything out.
+2. Call the **Artifact** tool: `file_path` = the absolute path of `dashboard.html`, `icon` =
+   `"chart"`, `description` = one sentence naming the target, the horizon and the selected model
+   (numbers only as the report printed them). Leave `title` alone; the page has its own.
+3. Put the link at the top of your answer, and say once that the page is private to them and
+   includes the series values it plots, so they can decide before sharing it.
+
+If you have no Artifact tool, or it fails, say so, and tell the user `dashboard.html` opens in any
+browser (give the path). If the engine did not write a dashboard (a `DASHBOARD_FAILED` warning),
+say that and carry on; never build a page yourself.
+
+## Step 5: explain the result
 
 The text report is complete and verified. Read `result.json` (path under "Files:") **with the Read
 tool, not with shell scripts** (`python`, `jq` and `cat` are not pre-approved and would prompt),
 and only for detail you need: `backtest.models` for the per-model table, `profile` for patterns,
 `warnings` for the full list including `info` notices.
 
-Structure your answer like this, in this order, keeping the three kinds of statement apart:
+Structure your answer like this, in this order, keeping the three kinds of statement apart.
+Start with the dashboard link (step 4), then:
 
 1. **Headline**: target, horizon (with dates), the sum of forecasts and its change versus the
    previous period.

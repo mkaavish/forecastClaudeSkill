@@ -73,6 +73,17 @@ def test_skill_has_a_self_check_covering_the_slips_seen_in_live_runs():
         assert slip in SKILL
 
 
+def test_skill_publishes_the_engine_built_dashboard_as_an_artifact():
+    assert re.search(r"allowed-tools:.*\bArtifact\b", SKILL)
+    assert "dashboard.html" in SKILL and "Artifact" in SKILL
+    assert (
+        "Read the whole file" in SKILL and "Do not edit it" in SKILL
+    )  # the tool requires reading it first
+    assert '`icon` =\n   `"chart"`' in SKILL
+    assert "private to them" in SKILL  # the page embeds the user's series values
+    assert "never build a page yourself" in SKILL
+
+
 def test_skill_reads_results_with_the_read_tool_not_shell_scripts():
     assert "**with the Read\ntool, not with shell scripts**" in SKILL
     assert re.search(r"allowed-tools:.*\bRead\b", SKILL)

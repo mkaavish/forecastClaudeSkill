@@ -51,6 +51,7 @@ WARNING_CODES: dict[str, str] = {
     "FORECAST_CLIPPED": "Negative forecast values were raised to zero because the history is non-negative.",
     # output
     "PLOT_FAILED": "The chart could not be drawn; all other result files were written.",
+    "DASHBOARD_FAILED": "The HTML dashboard could not be built; all other result files were written.",
 }
 
 SHORT_HISTORY_OBS = 50

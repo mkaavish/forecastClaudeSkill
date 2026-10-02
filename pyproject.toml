@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "claude-forecast"
-version = "0.1.0"
+version = "0.2.0"
 description = "Statistically backtested time-series forecasting engine behind the /forecast Claude Code skill."
 readme = "README.md"
 license = { text = "MIT" }

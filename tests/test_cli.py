@@ -97,6 +97,7 @@ def test_run_json_writes_artifacts_and_prints_a_valid_result(run_dir, capsys):
     assert result.forecast.horizon == 21 and result.artifacts.directory == str(out.resolve())
     assert sorted(p.name for p in out.iterdir()) == [
         "backtest.csv",
+        "dashboard.html",
         "forecast.csv",
         "forecast.png",
         "profile.json",

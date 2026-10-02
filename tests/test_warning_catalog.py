@@ -155,6 +155,17 @@ def _plot_failed(tmp_path):
         return {w.code for w in write_artifacts(outcome, tmp_path / "run").warnings}
 
 
+def _dashboard_failed(tmp_path):
+    from unittest import mock
+
+    from forecast.outputs import write_artifacts
+    from forecast.pipeline import run_forecast
+
+    outcome = run_forecast(csv(tmp_path, synthetic.trend_seasonality(200)), horizon=7)
+    with mock.patch("forecast.dashboard.render_dashboard", side_effect=RuntimeError("boom")):
+        return {w.code for w in write_artifacts(outcome, tmp_path / "run").warnings}
+
+
 TRIGGERS = {
     # loading
     "TARGET_AUTO_SELECTED": lambda t: load_codes(t, daily(units_sold=range(40), price=[9.9] * 40)),
@@ -216,6 +227,7 @@ TRIGGERS = {
     "FORECAST_CLIPPED": _clipped,
     # output
     "PLOT_FAILED": _plot_failed,
+    "DASHBOARD_FAILED": _dashboard_failed,
 }
 
 

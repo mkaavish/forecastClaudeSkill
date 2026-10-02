@@ -281,6 +281,10 @@ forecast-output/sales/
 └── forecast.png    history, forecast start, forecast, 80% and 95% intervals
 ```
 
+### The dashboard
+
+`dashboard.html` is a self-contained page (no network access, works offline, light and dark themes, phone-friendly): the headline figures, the forecast chart with hover details and toggleable 80% / 95% bands, the model comparison and per-window error that justify the choice, the full score table, the data profile and every warning. The engine builds it from its own results, so every number on it is one the engine computed. Inside Claude Code the skill publishes it as a private Artifact and links it at the top of the answer; from the CLI, open the file in any browser.
+
 JSON schemas for the contracts are in [`schemas/`](schemas). If the chart can't be drawn, the forecast and every other file are still written.
 
 ---
@@ -393,7 +397,7 @@ Everything runs locally. No accounts, no hosted backend, no paid API.
 
 ## Status
 
-**v0.1.0 — first release.**
+**v0.2.0.**
 
 - [x] Claude Code `/forecast` skill
 - [x] CSV ingestion, date / target / frequency detection
@@ -404,7 +408,7 @@ Everything runs locally. No accounts, no hosted backend, no paid API.
 - [x] MAE / RMSE / sMAPE / MASE evaluation
 - [x] Deterministic model selection
 - [x] Prediction intervals with backtest-based widening
-- [x] Forecast chart, `forecast.csv`, `result.json`
+- [x] Forecast chart, interactive dashboard, `forecast.csv`, `result.json`
 - [x] Plain-English analysis
 - [x] Standalone Python CLI
 - [x] Automated tests and synthetic example datasets

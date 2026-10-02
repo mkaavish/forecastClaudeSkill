@@ -310,6 +310,7 @@ class Artifacts(_Model):
     backtest_csv: str
     forecast_csv: str
     plot: str | None = None
+    dashboard: str | None = None
 
 
 class RunMeta(_Model):

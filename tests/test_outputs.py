@@ -46,10 +46,10 @@ def test_a_chart_is_produced_for_every_example(written):
         assert width >= 1500 and height >= 700 and png.stat().st_size > 20_000, name
 
 
-def test_the_run_directory_now_has_five_files(written):
+def test_the_run_directory_has_six_files(written):
     for _, _, directory in written.values():
         assert sorted(p.name for p in directory.iterdir()) == [
-            "backtest.csv", "forecast.csv", "forecast.png", "profile.json", "result.json",
+            "backtest.csv", "dashboard.html", "forecast.csv", "forecast.png", "profile.json", "result.json",
         ]  # fmt: skip
 
 
@@ -121,7 +121,9 @@ def test_every_number_in_the_summary_comes_from_result_json(written):
     for name, (_, result, _) in written.items():
         text = text_summary(result)
         numbers = list(json_numbers(json.loads(result.model_dump_json())))
-        body = [ln for ln in text.splitlines() if not ln.startswith(("  [", "Files:"))]
+        body = [
+            ln for ln in text.splitlines() if not ln.startswith(("  [", "Files:", "Dashboard:"))
+        ]
         unexplained = [
             tok
             for ln in body

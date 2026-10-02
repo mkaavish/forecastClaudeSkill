@@ -95,6 +95,7 @@ Mention every `warn` warning. Mention `info` notices only when they matter to th
 | `INTERVALS_CALIBRATED` | "The model's own intervals were too narrow in testing (they contained <native_coverage_80> of actuals), so they were widened by <factor>. After widening, coverage on the test data matched, but on genuinely new data it will be somewhat lower." |
 | `FORECAST_CLIPPED` | (info) "Negative forecasts or bounds were raised to zero because the history never goes negative." |
 | `PLOT_FAILED` | "The chart could not be drawn; the forecast and all other files were written." |
+| `DASHBOARD_FAILED` | "The interactive dashboard could not be built; the forecast, chart and all other files were written." Say there is no dashboard to open; do not try to build one yourself. |
 
 ## Refusals (exit code 4)
 
