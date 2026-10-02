@@ -1,20 +1,15 @@
 import type { Metadata } from "next";
-import { StatusBadge } from "@/components/status-badge";
 
 export const metadata: Metadata = { title: "Statistical integrity — /forecast" };
 
 export default function StatisticalIntegrity() {
   return (
     <>
-      <p>
-        <StatusBadge status="planned" />
-      </p>
       <h1>Statistical integrity</h1>
       <p>
         Plenty of tools will take a CSV and produce a number. These are the rules{" "}
-        <code>/forecast</code> is designed around, and what separates it from &ldquo;an AI predicts
-        your spreadsheet.&rdquo; These are design commitments for V1;
-        the engine that enforces them is still being built.
+        <code>/forecast</code> follows, and what separates it from &ldquo;an AI predicts your
+        spreadsheet.&rdquo; Each rule is enforced by tests.
       </p>
 
       <h2>Backtest every model</h2>
@@ -25,23 +20,38 @@ export default function StatisticalIntegrity() {
 
       <h2>Compare against baselines</h2>
       <p>
-        Naive and Seasonal Naive always run. A more complex model has to beat the best baseline by a
-        margin to be selected. If it doesn&rsquo;t, the baseline wins and the result says so.
+        Naive and HistoricAverage always run, and SeasonalNaive runs when a seasonal period is
+        found. A more capable model has to beat the best baseline by at least 5% to be selected. If
+        it doesn&rsquo;t, the baseline wins and the result says so.
       </p>
 
       <h2>Expose uncertainty</h2>
       <p>
-        Forecasts come with 80% and 95% prediction intervals. The engine also checks how often the
-        80% interval would have contained the actual value in the backtest, and warns if the
-        intervals look too narrow. Intervals for a period are not added together to make an interval
-        for a total, because errors across periods are correlated.
+        Forecasts come with 80% and 95% prediction intervals. The engine also checks how often a
+        model&rsquo;s own 80% interval contained the actual value in the backtest. If that was under
+        60%, it widens the intervals (never narrows them) and says so. Intervals for each period are
+        not added together to make an interval for a total, because errors across periods are
+        correlated.
       </p>
 
       <h2>Don&rsquo;t force unreliable forecasts</h2>
       <p>
-        If the history is too short, the series is constant, or too much data is missing, the engine
-        refuses with a reason instead of producing a number. If no model beats a naive forecast, or
-        backtest errors swing widely between windows, the result carries a warning.
+        The engine refuses, with a reason, instead of producing a number when the data can&rsquo;t
+        support one:
+      </p>
+      <ul>
+        <li>a constant series</li>
+        <li>too little history</li>
+        <li>irregular sampling</li>
+        <li>more than 10% of values missing</li>
+        <li>a horizon the history can&rsquo;t validate</li>
+        <li>a file that can&rsquo;t be read</li>
+      </ul>
+      <p>
+        A warning fires when the winner beats Naive by less than 10%, so a forecast that is barely
+        better than repeating the last value is flagged. There are 33 catalogued warning codes and
+        12 refusal codes, each tested. A test fails if a warning is emitted but not catalogued, or
+        catalogued but never triggered.
       </p>
 
       <h2>Distinguish forecasts from observations</h2>
@@ -67,8 +77,9 @@ export default function StatisticalIntegrity() {
       <h2>Claude does not do the math</h2>
       <p>
         Claude doesn&rsquo;t compute forecasts, compare errors, or choose the model. It interprets
-        the engine&rsquo;s output and is expected to quote values from the result files and add no
-        figures of its own.
+        the engine&rsquo;s output and quotes values from the result files. Its numbers are checked:
+        a test requires every number in the engine&rsquo;s text summary to appear in{" "}
+        <code>result.json</code>.
       </p>
 
       <h2>Known limitations in V1</h2>
@@ -78,6 +89,7 @@ export default function StatisticalIntegrity() {
         <li>Only one seasonal period is modeled; multiple seasonality is flagged, not handled.</li>
         <li>Intermittent (zero-heavy) demand runs baselines only, with a warning.</li>
         <li>With only a few backtest windows, model selection is noisy. That is why the margin rule exists.</li>
+        <li>There is no interval for the sum of a forecast.</li>
       </ul>
     </>
   );

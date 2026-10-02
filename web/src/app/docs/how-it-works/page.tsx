@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CodeBlock } from "@/components/code-block";
-import { StatusBadge } from "@/components/status-badge";
 
 export const metadata: Metadata = { title: "How it works — /forecast" };
 
@@ -11,7 +10,7 @@ export default function HowItWorks() {
       <h1>How it works</h1>
       <p>
         Claude understands the problem. Python does the math. The two halves have separate jobs and
-        a narrow interface between them: JSON files.
+        a narrow interface between them: one command and a set of files.
       </p>
 
       <h2>The pipeline</h2>
@@ -23,21 +22,19 @@ export default function HowItWorks() {
   → model selection
   → forecast
   → Claude explanation`}</CodeBlock>
-      <p>
-        <StatusBadge status="planned" /> This is the V1 design.
-      </p>
 
       <h2>What Claude does</h2>
       <ul>
         <li>Parses what you asked for and picks the engine arguments.</li>
         <li>
-          Reads the profile. If it lists ambiguities (several numeric columns, an unclear date
-          format, gaps that might mean zero), Claude asks you.
+          Runs one command, <code>forecast run</code>. If the data is ambiguous (several numeric
+          columns, an unclear date format, gaps that might mean zero), the engine exits with code 3
+          and a list of questions. Claude asks you, then re-runs with the flags you chose.
         </li>
-        <li>Calls the engine with explicit arguments.</li>
         <li>
-          Reads the result and explains it: what was observed, what is forecast, how reliable the
-          backtest says it is, and which warnings matter.
+          Reads the engine&rsquo;s text report and, when needed, <code>result.json</code>, and
+          explains it: what was observed, what is forecast, how reliable the backtest says it is,
+          and which warnings matter.
         </li>
       </ul>
 
@@ -76,14 +73,14 @@ export default function HowItWorks() {
         parts code is bad at: working out what you meant and explaining the result in your terms.
       </p>
       <p>
-        Claude also never picks the winning model and never does arithmetic on the results. The
-        engine reports the numbers, and Claude is expected to cite only those.
+        Claude also never picks the winning model and never does arithmetic on the results. When
+        Claude needs a number to say something true, the engine supplies it.
       </p>
 
       <h2>Privacy and cost</h2>
       <p>
-        Claude works from the profile (summary statistics), not the raw rows, so a large CSV
-        doesn&rsquo;t have to pass through the model.
+        Claude never reads the raw rows. It works from the engine&rsquo;s report and result file,
+        so a large CSV doesn&rsquo;t have to pass through the model.
       </p>
     </>
   );

@@ -48,7 +48,7 @@ function Section({
 }) {
   return (
     <section className="border-t border-border">
-      <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-24">
+      <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-24 [&_.grid>*]:min-w-0">
         <p className="eyebrow mb-8">
           <span className="text-accent">{index}</span> / {label}
         </p>
@@ -66,8 +66,8 @@ export default function Home() {
       <section className="mx-auto grid max-w-6xl items-center gap-12 px-4 pb-20 pt-14 sm:px-6 sm:pt-20 lg:grid-cols-[1fr_1.05fr] lg:gap-16">
         <div>
           <p className="eyebrow mb-6 flex items-center gap-2">
-            <span aria-hidden className="size-1.5 rounded-full bg-warn" />
-            Early development · open source · MIT
+            <span aria-hidden className="size-1.5 rounded-full bg-accent" />
+            v0.1.0 · open source · MIT
           </p>
           <h1 className="text-[2.5rem] font-semibold leading-[1.08] tracking-[-0.035em] sm:text-[3.25rem]">
             Time-series forecasting for Claude Code.
@@ -162,19 +162,19 @@ export default function Home() {
             </p>
             <p className="mt-5 text-foreground">If a simple baseline performs best, the baseline wins.</p>
             <dl className="mt-8 divide-y divide-border border-y border-border text-sm">
-              <div className="flex justify-between gap-6 py-3">
-                <dt className="text-subtle">V1 models</dt>
-                <dd className="text-right font-mono text-foreground">
-                  Naive · Seasonal Naive · AutoETS · AutoARIMA
+              <div className="flex flex-col gap-1 py-3 sm:flex-row sm:justify-between sm:gap-6">
+                <dt className="shrink-0 text-subtle">V1 models</dt>
+                <dd className="font-mono text-foreground sm:text-right">
+                  Naive · SeasonalNaive · HistoricAverage · AutoETS · AutoTheta · AutoARIMA
                 </dd>
               </div>
-              <div className="flex justify-between gap-6 py-3">
+              <div className="flex flex-col gap-1 py-3 sm:flex-row sm:justify-between sm:gap-6">
                 <dt className="text-subtle">Metrics</dt>
-                <dd className="font-mono text-foreground">MAE · RMSE · sMAPE</dd>
+                <dd className="font-mono text-foreground">MASE (ranking) · MAE · RMSE · sMAPE</dd>
               </div>
-              <div className="flex justify-between gap-6 py-3">
+              <div className="flex flex-col gap-1 py-3 sm:flex-row sm:justify-between sm:gap-6">
                 <dt className="text-subtle">Selection</dt>
-                <dd className="text-right text-foreground">Deterministic</dd>
+                <dd className="text-foreground sm:text-right">Deterministic</dd>
               </div>
             </dl>
             <p className="mt-6 text-sm">
@@ -195,7 +195,7 @@ export default function Home() {
             <h2 className="text-3xl font-semibold leading-tight tracking-[-0.025em]">One command.</h2>
             <p className="mt-5 max-w-md leading-7 text-muted">
               Point it at a CSV. It finds the date and target columns, checks the series, backtests
-              the models, and writes the forecast, a chart, and the metrics to disk.
+              the models, and writes the forecast, a chart, and a full result file.
             </p>
             <p className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm">
               <Link href="/docs" className={linkCls}>
@@ -210,14 +210,9 @@ export default function Home() {
             </p>
           </div>
           <div className="space-y-4">
-            <CodeBlock label="claude code">{`/forecast revenue.csv`}</CodeBlock>
-            <p className="text-sm text-subtle">
-              Not released yet.{" "}
-              <Link href="/docs" className={linkCls}>
-                See project status
-              </Link>
-              .
-            </p>
+            <CodeBlock label="install, inside Claude Code">{`/plugin marketplace add mkaavish/forecastClaudeSkill
+/plugin install forecast@forecast-skill`}</CodeBlock>
+            <CodeBlock label="run">{`/forecast:forecast revenue.csv`}</CodeBlock>
           </div>
         </div>
       </Section>

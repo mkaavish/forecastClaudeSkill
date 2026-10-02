@@ -1,6 +1,4 @@
 // Single place for site-wide constants.
-// TODO: confirm the repository URL before launch. This is taken from the
-// `repository` field in ../.claude-plugin/plugin.json.
 export const REPO_URL = "https://github.com/mkaavish/forecastClaudeSkill";
 
 export const SITE_URL = "https://forecast-skill.vercel.app";

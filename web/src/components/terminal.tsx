@@ -1,4 +1,4 @@
-// A static, hand-written mock of a Claude Code session. Nothing here is real output.
+// Real output of `forecast run examples/retail_sales.csv --horizon 30`, shown as a Claude Code session.
 function Tool({ cmd, children }: { cmd: string; children: React.ReactNode }) {
   return (
     <div className="mt-4">
@@ -19,7 +19,7 @@ function Tool({ cmd, children }: { cmd: string; children: React.ReactNode }) {
 function Row({ k, v }: { k: string; v: string }) {
   return (
     <div className="flex gap-4">
-      <span className="w-32 shrink-0">{k}</span>
+      <span className="w-36 shrink-0">{k}</span>
       <span className="num text-foreground">{v}</span>
     </div>
   );
@@ -32,33 +32,32 @@ export function Terminal() {
         <span>
           <span className="text-accent">✻</span> Claude Code
         </span>
-        <span>example · not a real run</span>
+        <span>examples/retail_sales.csv</span>
       </figcaption>
       <div
         tabIndex={0}
         role="region"
-        aria-label="Example Claude Code session"
+        aria-label="Claude Code session forecasting retail_sales.csv"
         className="overflow-x-auto px-4 py-5 font-mono text-[13px] leading-6 text-muted sm:px-5"
       >
         <div className="min-w-[19rem]">
           <p className="rounded bg-white/[0.04] px-3 py-1.5 text-foreground">
-            <span className="text-subtle">&gt; </span>/forecast sales.csv --horizon 30
+            <span className="text-subtle">&gt; </span>/forecast:forecast retail_sales.csv --horizon 30
           </p>
 
-          <Tool cmd="forecast profile sales.csv">
+          <Tool cmd="forecast run retail_sales.csv --horizon 30">
             <p>
-              revenue · daily · <span className="num">1,004</span> rows · weekly cycle
+              sales · daily · <span className="num">731</span> observations
             </p>
-          </Tool>
-
-          <Tool cmd="forecast run sales.csv --horizon 30">
-            <p className="mb-1">Backtested 4 models, 5 rolling windows</p>
-            <Row k="Naive" v="12.3% sMAPE" />
-            <Row k="Seasonal Naive" v="8.9% sMAPE" />
-            <Row k="AutoARIMA" v="6.7% sMAPE" />
-            <Row k="AutoETS" v="6.2% sMAPE" />
+            <p className="mb-1">5 rolling windows of 30 steps · MASE</p>
+            <Row k="Naive" v="3.17" />
+            <Row k="SeasonalNaive" v="1.21" />
+            <Row k="HistoricAverage" v="4.96" />
+            <Row k="AutoETS" v="0.974" />
+            <Row k="AutoTheta" v="0.974" />
+            <Row k="AutoARIMA" v="0.977" />
             <p className="mt-1">
-              Selected <span className="text-accent">AutoETS</span>
+              Selected <span className="text-accent">AutoETS</span> · beat SeasonalNaive by 19%
             </p>
           </Tool>
 
@@ -68,15 +67,16 @@ export function Terminal() {
             </span>
             <div className="space-y-3">
               <p>
-                AutoETS had the lowest backtest error and beat the best baseline, Seasonal Naive,
-                so the engine selected it.
+                AutoETS tied AutoTheta on MASE (0.974), and ties go to the simpler model. It beat
+                the best baseline, SeasonalNaive, by 19%, well past the 5% required.
               </p>
               <p>
-                Revenue for the next 30 days is forecast at{" "}
-                <span className="num font-mono text-[13px]">$782,000</span>. By day 30 the 95%
-                interval runs from <span className="num font-mono text-[13px]">$24.1k</span> to{" "}
-                <span className="num font-mono text-[13px]">$28.9k</span> a day, so the later days
-                are less certain than the first.
+                The next 30 days sum to{" "}
+                <span className="num font-mono text-[13px]">469,257</span>, up 3.0% on the previous
+                30 (<span className="num font-mono text-[13px]">455,373</span>). On the last day the
+                95% interval runs from{" "}
+                <span className="num font-mono text-[13px]">14,910</span> to{" "}
+                <span className="num font-mono text-[13px]">18,380</span>.
               </p>
             </div>
           </div>
