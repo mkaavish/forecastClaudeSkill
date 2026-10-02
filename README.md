@@ -278,7 +278,8 @@ forecast-output/sales/
 ├── forecast.csv    series, ds, forecast, lo_80, hi_80, lo_95, hi_95, model
 ├── backtest.csv    one row per (model, window, step): the audit trail behind every metric
 ├── profile.json    the dataset profile on its own
-└── forecast.png    history, forecast start, forecast, 80% and 95% intervals
+├── forecast.png    history, forecast start, forecast, 80% and 95% intervals
+└── dashboard.html  interactive dashboard (see below)
 ```
 
 ### The dashboard
